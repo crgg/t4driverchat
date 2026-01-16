@@ -1,6 +1,9 @@
 /**
  * Chat Store
  * Manages chat state, messages, and real-time updates
+ *
+ * NOTE: Chat functionality uses ONLY socket events, NOT APIs
+ * APIs are only used for loading static data (devices, drivers, etc.)
  */
 
 import { defineStore } from 'pinia';
@@ -8,6 +11,7 @@ import { ref, computed } from 'vue';
 import { chatApi } from '@/services/api';
 import socketService from '@/services/socket';
 import { scrollToBottom } from '@/utils/helpers';
+import SocketAdapter from '@/adapter/socket.adapter';
 
 export const useChatStore = defineStore('chat', () => {
   // State
@@ -17,6 +21,7 @@ export const useChatStore = defineStore('chat', () => {
   const lastMessages = ref(new Map());
   const unreadMessages = ref(new Map());
   const usersTyping = ref(new Set());
+  const typingTimeouts = ref(new Map()); // Map to store typing timeouts
   const sessionDrivers = ref(new Map());
   const deviceInformation = ref(new Map());
   const drafts = ref(new Map());
@@ -39,9 +44,35 @@ export const useChatStore = defineStore('chat', () => {
    * @param {Object} room
    */
   const setCurrentRoom = (room) => {
-    currentRoom.value = room;
-    if (room?.id) {
-      socketService.joinRoom(room.id.toString());
+    try {
+      currentRoom.value = room;
+      socketService.joinRoom(SocketAdapter.roomToEmitJoinEvent(room));
+    } catch (error) {
+      console.error('Failed to set current room:', error);
+    }
+  };
+
+  const setSyncSession = async (room, callback) => {
+    try {
+      const payload = SocketAdapter.roomToEmitSyncSessionEvent(room);
+      socketService.syncSession(payload, (newRoomData) => {
+        try {
+          const normalizedRoom = SocketAdapter.syncSessionResponseToRoom(newRoomData);
+          callback(normalizedRoom);
+        } catch (error) {
+          console.error('Failed to normalize sync session response to room:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to set sync session:', error);
+    }
+  };
+
+  const openedChatWeb = (room) => {
+    try {
+      socketService.openedChatWeb(SocketAdapter.openedChatWebToEmitEvent(room));
+    } catch (error) {
+      console.error('Failed to opened chat web:', error);
     }
   };
 
@@ -51,36 +82,39 @@ export const useChatStore = defineStore('chat', () => {
   const leaveCurrentRoom = () => {
     if (currentRoom.value?.id) {
       socketService.leaveRoom(currentRoom.value.id.toString());
+
+      // Clear all typing timeouts for this session
+      const sessionId = currentRoom.value.id;
+      typingTimeouts.value.forEach((timeout, key) => {
+        if (key.startsWith(`${sessionId}-`)) {
+          clearTimeout(timeout);
+          typingTimeouts.value.delete(key);
+          usersTyping.value.delete(key);
+        }
+      });
     }
     currentRoom.value = null;
     messages.value = [];
   };
 
   /**
-   * Load messages for a session
+   * Load messages for a session via socket
    * @param {number} sessionId
-   * @param {number} page
+   * @param {number} offset
+   * @param {number} limit
    */
-  const loadMessages = async (sessionId, page = 1) => {
+  const loadMessages = (sessionId, offset = 0, limit = 50) => {
     loadingMessages.value = true;
 
-    try {
-      const response = await chatApi.getMessages(sessionId, page);
-      const newMessages = response.data.data || [];
+    // Request history via socket
+    socketService.requestHistoryMessages({
+      sessionId: sessionId,
+      offset: offset,
+      limit: limit,
+    });
 
-      if (page === 1) {
-        messages.value = newMessages;
-      } else {
-        messages.value = [...newMessages, ...messages.value];
-      }
-
-      return { success: true, data: newMessages, hasMore: response.data.hasMore };
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-      return { success: false, error };
-    } finally {
-      loadingMessages.value = false;
-    }
+    // The response will be handled by the 'history-messages' socket event listener
+    return { success: true };
   };
 
   /**
@@ -143,18 +177,146 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   /**
-   * Mark messages as read
+   * Update an existing message
+   * @param {Object} updatedMessage
+   */
+  const updateMessage = (updatedMessage) => {
+    const index = messages.value.findIndex((m) => m.id === updatedMessage.id);
+    if (index !== -1) {
+      messages.value.splice(index, 1, updatedMessage);
+    }
+
+    // Update last message if it's the latest
+    if (updatedMessage.session_id) {
+      const lastMsg = lastMessages.value.get(updatedMessage.session_id);
+      if (lastMsg?.id === updatedMessage.id) {
+        lastMessages.value.set(updatedMessage.session_id, updatedMessage);
+      }
+    }
+  };
+
+  /**
+   * Delete a message
+   * @param {number|string} messageId
+   */
+  const deleteMessage = (messageId) => {
+    const index = messages.value.findIndex((m) => m.id === messageId);
+    if (index !== -1) {
+      const deletedMessage = messages.value[index];
+      messages.value.splice(index, 1);
+
+      // Update last message if it was the deleted one
+      if (deletedMessage.session_id) {
+        const lastMsg = lastMessages.value.get(deletedMessage.session_id);
+        if (lastMsg?.id === messageId) {
+          // Get the new last message
+          const newLastMessage = messages.value
+            .filter((m) => m.session_id === deletedMessage.session_id)
+            .pop();
+          if (newLastMessage) {
+            lastMessages.value.set(deletedMessage.session_id, newLastMessage);
+          } else {
+            lastMessages.value.delete(deletedMessage.session_id);
+          }
+        }
+      }
+    }
+  };
+
+  /**
+   * Mark specific message as read
+   * @param {Object} message
+   */
+  const markMessageAsRead = (message) => {
+    if (currentRoom.value?.id === message.session_id) {
+      messages.value.forEach((msg) => {
+        if (msg.session_id === message.session_id && !msg.read_at) {
+          msg.read_at = message.read_at || new Date().toISOString();
+        }
+      });
+    }
+  };
+
+  /**
+   * Load history messages (for pagination/scroll)
+   * @param {Array} historyMessages
+   */
+  const loadHistoryMessages = (historyMessages) => {
+    if (historyMessages && historyMessages.length) {
+      messages.value = [...historyMessages.reverse(), ...messages.value];
+    }
+    // Stop loading indicator
+    loadingMessages.value = false;
+  };
+
+  /**
+   * Update message ID after server confirmation
+   * @param {Object} msg
+   */
+  const updateMessageId = (msg) => {
+    // Find temp message and update with real ID
+    const tempIndex = messages.value.findIndex((m) => m.sending && !m.id);
+    if (tempIndex > -1 && msg.id) {
+      messages.value[tempIndex].id = msg.id;
+      messages.value[tempIndex].sending = false;
+    }
+  };
+
+  /**
+   * Increment unread count for a session
    * @param {number} sessionId
    */
-  const markAsRead = async (sessionId) => {
-    try {
-      await chatApi.markAsRead(sessionId);
-      unreadMessages.value.delete(sessionId);
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-      return { success: false, error };
-    }
+  const incrementUnreadCount = (sessionId) => {
+    const currentCount = unreadMessages.value.get(sessionId) || 0;
+    unreadMessages.value.set(sessionId, currentCount + 1);
+  };
+
+  /**
+   * Index last messages from rooms
+   * @param {Array} rooms
+   */
+  const indexLastMessages = (rooms) => {
+    if (!rooms || !Array.isArray(rooms)) return;
+
+    rooms.forEach((room) => {
+      if (room.lastMessage && room.id) {
+        lastMessages.value.set(room.id, room.lastMessage);
+      }
+    });
+  };
+
+  /**
+   * Index unread messages from rooms
+   * @param {Array} rooms
+   */
+  const indexUnreadMessages = (rooms) => {
+    if (!rooms || !Array.isArray(rooms)) return;
+
+    // Clear current unread messages
+    unreadMessages.value.clear();
+
+    rooms.forEach((room) => {
+      if (room.count && room.count > 0) {
+        unreadMessages.value.set(room._id, room.count);
+      }
+    });
+  };
+
+  /**
+   * Mark messages as read via socket
+   * @param {number} sessionId
+   */
+  const markAsRead = (sessionId, username) => {
+    // Emit via socket
+    socketService.readMessage({
+      sessionId: sessionId,
+      username: username,
+    });
+
+    // Clear unread count locally
+    unreadMessages.value.delete(sessionId);
+
+    return { success: true };
   };
 
   /**
@@ -214,12 +376,41 @@ export const useChatStore = defineStore('chat', () => {
    */
   const setUserTyping = (data) => {
     const key = `${data.sessionId}-${data.username}`;
+
+    // Clear existing timeout if it exists
+    const existingTimeout = typingTimeouts.value.get(key);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    // Add user to typing set
     usersTyping.value.add(key);
 
-    // Remove after timeout
-    setTimeout(() => {
+    // Create new timeout and store reference
+    const timeout = setTimeout(() => {
       usersTyping.value.delete(key);
+      typingTimeouts.value.delete(key);
     }, 3000);
+
+    typingTimeouts.value.set(key, timeout);
+  };
+
+  /**
+   * Clear user typing status
+   * @param {Object} data
+   */
+  const clearUserTyping = (data) => {
+    const key = `${data.sessionId}-${data.username}`;
+
+    // Clear timeout if exists
+    const existingTimeout = typingTimeouts.value.get(key);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      typingTimeouts.value.delete(key);
+    }
+
+    // Remove from typing set
+    usersTyping.value.delete(key);
   };
 
   /**
@@ -283,6 +474,13 @@ export const useChatStore = defineStore('chat', () => {
     lastMessages.value.clear();
     unreadMessages.value.clear();
     usersTyping.value.clear();
+
+    // Clear all typing timeouts
+    typingTimeouts.value.forEach((timeout) => {
+      clearTimeout(timeout);
+    });
+    typingTimeouts.value.clear();
+
     drafts.value.clear();
   };
 
@@ -310,17 +508,28 @@ export const useChatStore = defineStore('chat', () => {
     loadMessages,
     sendMessage,
     receiveMessage,
+    updateMessage,
+    deleteMessage,
+    updateMessageId,
     markAsRead,
+    markMessageAsRead,
+    loadHistoryMessages,
+    incrementUnreadCount,
+    indexLastMessages,
+    indexUnreadMessages,
     uploadFile,
     saveDraft,
     getDraft,
     clearDraft,
     setUserTyping,
+    clearUserTyping,
     isUserTyping,
     setSessionDriver,
     getSessionDriver,
     setDeviceInfo,
     loadDeviceInformation,
     clearChatData,
+    openedChatWeb,
+    setSyncSession,
   };
 });

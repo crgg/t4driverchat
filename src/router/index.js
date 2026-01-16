@@ -106,9 +106,9 @@ router.beforeEach(async (to, from, next) => {
 });
 
 // Global after hook
-router.afterEach((to, from) => {
-  // You can add analytics tracking here
-  // console.log(`Navigated from ${from.path} to ${to.path}`)
-});
+// router.afterEach((to, from) => {
+// You can add analytics tracking here
+// console.log(`Navigated from ${from.path} to ${to.path}`)
+// });
 
 export default router;

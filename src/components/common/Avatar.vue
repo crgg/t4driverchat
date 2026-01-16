@@ -44,7 +44,7 @@ const defaultAvatar = '/images/user-avatar-black.png';
 const props = defineProps({
   src: {
     type: String,
-    default: defaultAvatar,
+    default: '/images/user-avatar-black.png',
   },
   alt: {
     type: String,

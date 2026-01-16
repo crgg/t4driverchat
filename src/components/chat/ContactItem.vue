@@ -68,19 +68,18 @@ const props = defineProps({
 });
 
 const chatStore = useChatStore();
-// const contactsStore = useContactsStore();
+const contactsStore = useContactsStore();
 
 const { currentRoom, lastMessages, unreadMessages, sessionDrivers, deviceInformation } =
   storeToRefs(chatStore);
-// const { isContactOnline } = contactsStore;
+const { isContactOnline } = contactsStore;
 
 const isSelected = computed(() => {
   return currentRoom.value?.contact?.DRIVER_ID === props.contact.DRIVER_ID;
 });
 
 const isOnline = computed(() => {
-  return true;
-  // return isContactOnline.value(props.contact.DRIVER_ID);
+  return isContactOnline(props.contact.DRIVER_ID);
 });
 
 const sessionId = computed(() => {

@@ -5,8 +5,8 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { chatApi } from '@/services/api';
 import driversData from '@/fakeData/drivers.json';
+import { useChatStore } from './chat';
 
 export const useContactsStore = defineStore('contacts', () => {
   // State
@@ -26,11 +26,50 @@ export const useContactsStore = defineStore('contacts', () => {
 
   // Getters
   const currentContacts = computed(() => {
+    const chatStore = useChatStore();
+    const { lastMessages, sessionDrivers } = chatStore;
+
+    // Get base list based on filter
+    let list = [];
     if (filterBy.value === 'driver') {
-      return searchValue.value ? filteredDrivers.value : drivers.value;
+      list = searchValue.value ? filteredDrivers.value : drivers.value;
     } else {
-      return searchValue.value ? filteredCarriers.value : carriers.value;
+      list = searchValue.value ? filteredCarriers.value : carriers.value;
     }
+
+    // Separate contacts with and without messages
+    const listWithMessages = [];
+    const listWithoutMessages = [];
+
+    for (const contact of list) {
+      const sessionId = sessionDrivers.get(contact.DRIVER_ID);
+      const lastMessage = sessionId ? lastMessages.get(sessionId) : null;
+
+      if (lastMessage) {
+        listWithMessages.push({
+          ...contact,
+          session: { id: sessionId },
+          lastMessage: lastMessage,
+        });
+      } else {
+        listWithoutMessages.push({
+          ...contact,
+          session: sessionId ? { id: sessionId } : null,
+          lastMessage: undefined,
+        });
+      }
+    }
+
+    // Sort contacts with messages by message ID (most recent first)
+    listWithMessages.sort((a, b) => {
+      if (b.lastMessage && a.lastMessage) {
+        return b.lastMessage.id - a.lastMessage.id;
+      }
+      return 0;
+    });
+
+    // Return contacts with messages first, then without messages
+    return [...listWithMessages, ...listWithoutMessages];
   });
 
   const activeFiltersCount = computed(() => {
@@ -47,6 +86,7 @@ export const useContactsStore = defineStore('contacts', () => {
    * @param {string} search
    */
   const loadDrivers = async (search = '') => {
+    search;
     loading.value = true;
 
     try {
@@ -82,6 +122,7 @@ export const useContactsStore = defineStore('contacts', () => {
    * @param {string} search
    */
   const loadCarriers = async (search = '') => {
+    search;
     loading.value = true;
 
     try {
@@ -254,6 +295,39 @@ export const useContactsStore = defineStore('contacts', () => {
   };
 
   /**
+   * Update last message for a contact
+   * @param {number} sessionId
+   * @param {Object} message
+   * @note: This now updates the chatStore lastMessages Map
+   * The currentContacts computed will automatically reflect the change
+   */
+  const updateLastMessage = (sessionId, message) => {
+    const chatStore = useChatStore();
+    chatStore.lastMessages.set(sessionId, message);
+  };
+
+  /**
+   * Remove last message for a contact
+   * @param {number} sessionId
+   */
+  const removeLastMessage = (sessionId) => {
+    const chatStore = useChatStore();
+    chatStore.lastMessages.delete(sessionId);
+  };
+
+  /**
+   * Set session for a contact
+   * @param {string} driverId
+   * @param {number} sessionId
+   * @note: This now updates the chatStore sessionDrivers Map
+   * The currentContacts computed will automatically reflect the change
+   */
+  const setContactSession = (driverId, sessionId) => {
+    const chatStore = useChatStore();
+    chatStore.sessionDrivers.set(driverId, sessionId);
+  };
+
+  /**
    * Clear contacts data
    */
   const clearContacts = () => {
@@ -297,6 +371,9 @@ export const useContactsStore = defineStore('contacts', () => {
     addConnectedUser,
     removeConnectedUser,
     findContactById,
+    updateLastMessage,
+    removeLastMessage,
+    setContactSession,
     clearContacts,
   };
 });

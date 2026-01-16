@@ -5,7 +5,6 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { chatApi } from '@/services/api';
 
 export const useNotificationsStore = defineStore('notifications', () => {
   // State
@@ -160,6 +159,21 @@ export const useNotificationsStore = defineStore('notifications', () => {
     return showToast({ type: 'warning', title, message });
   };
 
+  /**
+   * Show confirmation dialog
+   * @param {string} message
+   * @param {string} title
+   * @returns {Promise<boolean>}
+   */
+  const showConfirm = async (message, title = 'Confirm') => {
+    return new Promise((resolve) => {
+      // For now, use native confirm dialog
+      // TODO: Replace with a custom modal component
+      const result = window.confirm(`${title}\n\n${message}`);
+      resolve(result);
+    });
+  };
+
   return {
     // State
     notifications,
@@ -180,5 +194,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     showError,
     showInfo,
     showWarning,
+    showConfirm,
   };
 });

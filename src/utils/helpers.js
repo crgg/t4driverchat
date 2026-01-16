@@ -8,7 +8,9 @@
  * @param {string} format
  * @returns {string}
  */
-export const formatDate = (date, format = 'YYYY-MM-DD HH:mm:ss') => {
+
+// format = 'YYYY-MM-DD HH:mm:ss'
+export const formatDate = (date) => {
   if (!date) return '';
   const d = new Date(date);
   return d.toLocaleString();

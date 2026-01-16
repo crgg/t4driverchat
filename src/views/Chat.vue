@@ -11,9 +11,6 @@
       <!-- Chat Window -->
       <ChatWindow />
     </div>
-
-    <!-- Toast Notifications -->
-    <Toast />
   </div>
 </template>
 
@@ -27,7 +24,6 @@ import socketService from '@/services/socket';
 import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContactList from '@/components/chat/ContactList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
-import Toast from '@/components/common/Toast.vue';
 import { useSocket } from '@/composables';
 
 const authStore = useAuthStore();
@@ -58,13 +54,140 @@ const initializeChat = async () => {
 };
 
 const setupSocketListeners = () => {
-  console.log('setupSocketListeners');
+  socketService.on('chat', (msg) => {
+    if (msg.where === 'PHONE' || msg.wherefrom === 'PHONE') {
+      // Emit read message if from phone
+      socketService.readMessage({
+        session_id: msg.session_id,
+        type: 1,
+        wherefrom: 'web',
+        user: authStore.user.username,
+        message_id: msg.id,
+        uuid: msg.UUID,
+        sessionId: msg.session_id,
+        username: authStore.user.username,
+      });
 
-  // New message received
+      // Add message if from current driver
+      if (msg.user_send === chatStore.currentRoom?.driver_id) {
+        chatStore.receiveMessage(msg);
+      }
+    } else {
+      chatStore.receiveMessage(msg);
+    }
+
+    // Update last message in contacts
+    if (msg.session_id) {
+      contactsStore.updateLastMessage(msg.session_id, msg);
+    }
+  });
+
+  // Global message received (for notifications)
+  socketService.on('receive-global-message', (message) => {
+    const currentUser = authStore.user.username;
+
+    // Determine which driver to associate with
+    const selectedDriverId =
+      String(currentUser).toLowerCase() === String(message.forUser).toLowerCase()
+        ? message.user
+        : message.forUser;
+
+    // Store session for driver
+    chatStore.setSessionDriver(selectedDriverId, message.session_id);
+
+    // Update contact's session
+    contactsStore.setContactSession(selectedDriverId, message.session_id);
+
+    // Update last message
+    contactsStore.updateLastMessage(message.session_id, message);
+
+    // If not in current room and message is not from current user, increment unread
+    if (chatStore.currentRoom?.id !== message.session_id && message.user !== currentUser) {
+      chatStore.incrementUnreadCount(message.session_id);
+    }
+  });
+
+  // New message received (modern event)
   socketService.on('message:new', (message) => {
     chatStore.receiveMessage(message);
     notificationsStore.showInfo(`New message from ${message.user_send}`);
   });
+
+  // Update existing message
+  socketService.on('update-message', (payload) => {
+    chatStore.updateMessage(payload);
+
+    // Also update last message if it was updated
+    if (payload.session_id) {
+      contactsStore.updateLastMessage(payload.session_id, payload);
+    }
+  });
+
+  // Delete message
+  socketService.on('destroy-message', (payload) => {
+    chatStore.deleteMessage(payload.id);
+
+    // Update last message after deletion
+    const { lastMessage, sessionId } = payload;
+    if (lastMessage && sessionId) {
+      contactsStore.updateLastMessage(sessionId, lastMessage);
+    } else if (sessionId) {
+      contactsStore.removeLastMessage(sessionId);
+    }
+  });
+
+  // Message read confirmation
+  socketService.on('readMessage', (message) => {
+    if (chatStore.currentRoom?.id === message.session_id) {
+      chatStore.markMessageAsRead(message);
+    }
+  });
+
+  // History messages (for pagination)
+  socketService.on('history-messages', (historyMessages = []) => {
+    chatStore.loadHistoryMessages(historyMessages);
+  });
+
+  // New message ID assigned (confirmation)
+  socketService.on('newIdMessage', (msg) => {
+    // Message was successfully saved and got an ID
+    chatStore.updateMessageId(msg);
+  });
+
+  // ===== TYPING EVENTS =====
+
+  // Typing indicator (old format)
+  socketService.on('typing', (msg) => {
+    if (msg.from === 'WEB') {
+      return;
+    }
+
+    chatStore.setUserTyping({
+      sessionId: msg.session_id,
+      username: msg.toUser,
+      newState: msg.newState,
+    });
+  });
+
+  // Typing indicator (modern format)
+  socketService.on('user:typing', (data) => {
+    chatStore.setUserTyping(data);
+  });
+
+  // ===== CHAT SESSION EVENTS =====
+
+  // Chat opened event
+  socketService.on('openedchat', (info) => {
+    if (chatStore.currentRoom?.id === info.session_id) {
+      // Mark messages as read when chat is opened
+      socketService.readMessage({
+        sessionId: info.session_id,
+        username: authStore.user.username,
+      });
+    }
+  });
+
+  // ===== USER EVENTS =====
 
   // User connected
   socketService.on('user:connected', (user) => {
@@ -81,41 +204,119 @@ const setupSocketListeners = () => {
     contactsStore.setConnectedUsers(users);
   });
 
-  socketService.on('request-available-rooms', (rooms) => {
-    console.log('request-available-rooms', rooms);
+  // Users connected (legacy format)
+  socketService.on('getUsersConnected', (payload) => {
+    if (payload.clientsDriver) {
+      contactsStore.setConnectedUsers(payload.clientsDriver);
+    }
   });
 
-  // Typing indicator
-  socketService.on('user:typing', (data) => {
-    chatStore.setUserTyping(data);
+  // Available rooms response
+  socketService.on('request-available-rooms', (rooms = []) => {
+    // Process rooms and map sessions to drivers
+    rooms.forEach((room) => {
+      const driverId = authStore.user.username === room.user2_id ? room.user1_id : room.user2_id;
+      // Store session for driver
+      chatStore.setSessionDriver(driverId, room.id);
+
+      // Update contact's session
+      contactsStore.setContactSession(driverId, room.id);
+    });
+
+    // Index last messages from rooms
+    chatStore.indexLastMessages(rooms);
   });
 
-  // Device information update
+  // Unread messages count
+  socketService.on('number-unread-messages', (rooms) => {
+    chatStore.indexUnreadMessages(rooms);
+  });
+
+  // ===== DEVICE EVENTS =====
+
+  // Device information update (modern format)
   socketService.on('device:update', (info) => {
     chatStore.setDeviceInfo(info.driver_id, info);
   });
 
-  // Connection events
+  // Device information update (legacy format)
+  socketService.on('device-information', (payload) => {
+    if (payload.driver_id) {
+      chatStore.setDeviceInfo(payload.driver_id, payload);
+    }
+  });
+
+  // ===== CONNECTION EVENTS =====
+
+  // Socket connected
   socketService.on('socket:connected', () => {
+    // Set user information
     emit('setUser', {
       username: authStore.user.username,
       type: 'dispatch',
       token: authStore.token,
     });
+
+    // Request available rooms
     emit('request-available-rooms', {
       username: authStore.user.username,
       typeUser: 'DISPATCH',
     });
-    chatStore.loadDeviceInformation();
+
+    // Request unread messages count
+    emit('number-unread-messages', {
+      username: authStore.user.username,
+    });
+
+    // Load device information (with slight delay to ensure connection is stable)
+    setTimeout(() => {
+      chatStore.loadDeviceInformation();
+    }, 500);
+
     notificationsStore.showSuccess('Connected to chat server');
   });
 
+  // Socket disconnected
   socketService.on('socket:disconnected', () => {
     notificationsStore.showWarning('Disconnected from chat server');
   });
 
+  // Socket reconnected
   socketService.on('socket:reconnected', () => {
+    // Re-authenticate and rejoin rooms
+    emit('setUser', {
+      username: authStore.user.username,
+      type: 'dispatch',
+      token: authStore.token,
+    });
+
+    if (chatStore.currentRoom?.id) {
+      socketService.joinRoom(chatStore.currentRoom.id.toString());
+    }
+
     notificationsStore.showSuccess('Reconnected to chat server');
+  });
+
+  // ===== ERROR EVENTS =====
+
+  socketService.on('error', (err) => {
+    console.error('Socket error:', err);
+    if (err.description) {
+      notificationsStore.showError(err.description);
+    }
+  });
+
+  socketService.on('connect_error', (err) => {
+    console.error('Connection error:', err);
+  });
+
+  socketService.on('reconnect_error', (err) => {
+    console.error('Reconnection error:', err);
+  });
+
+  socketService.on('reconnect_failed', () => {
+    console.error('Reconnection failed');
+    notificationsStore.showError('Failed to reconnect to chat server');
   });
 };
 

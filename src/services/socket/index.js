@@ -164,13 +164,17 @@ class SocketService {
    * @param {string} event
    * @param {any} data
    */
-  send(event, data) {
+  send(event, data, callback) {
     if (!this.socket?.connected) {
       console.warn('Socket not connected');
       return;
     }
 
-    this.socket.emit(event, data);
+    if (callback) {
+      this.socket.emit(event, data, callback);
+    } else {
+      this.socket.emit(event, data);
+    }
   }
 
   /**
@@ -212,7 +216,11 @@ class SocketService {
    * @param {string} room
    */
   joinRoom(room) {
-    this.send('join:room', { room });
+    this.send('join', room);
+  }
+
+  syncSession(roomData, callback) {
+    this.send('sync-session', roomData, callback);
   }
 
   /**
@@ -228,7 +236,23 @@ class SocketService {
    * @param {Object} message
    */
   sendMessage(message) {
-    this.send('message:send', message);
+    this.send('chat', message);
+  }
+
+  /**
+   * Update a message
+   * @param {Object} data - { messageId, newText }
+   */
+  updateMessage(data) {
+    this.send('update-message', data);
+  }
+
+  /**
+   * Delete a message
+   * @param {Object} data - { messageId, sessionId, withLastMessage, from, to }
+   */
+  destroyMessage(data) {
+    this.send('destroy-message', data);
   }
 
   /**
@@ -236,7 +260,7 @@ class SocketService {
    * @param {Object} data
    */
   sendTyping(data) {
-    this.send('user:typing', data);
+    this.send('typing', data);
   }
 
   /**
@@ -244,7 +268,31 @@ class SocketService {
    * @param {Object} data
    */
   stopTyping(data) {
-    this.send('user:stop-typing', data);
+    this.send('typing', data);
+  }
+
+  /**
+   * Emit read message event
+   * @param {Object} data
+   */
+  readMessage(data) {
+    this.send('read_message', data);
+  }
+
+  /**
+   * Emit opened chat web event
+   * @param {Object} data
+   */
+  openedChatWeb(data) {
+    this.send('openchatweb', data);
+  }
+
+  /**
+   * Request history messages
+   * @param {Object} data - { sessionId, offset, limit }
+   */
+  requestHistoryMessages(data) {
+    this.send('history-messages', data);
   }
 
   /**

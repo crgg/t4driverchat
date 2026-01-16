@@ -30,11 +30,11 @@
             @click="showUserMenu = !showUserMenu"
           >
             <Avatar
+              :status="socketService.isConnected() ? 'online' : 'offline'"
               :name="currentUser?.name || currentUser?.username"
               :src="currentUser?.avatar"
+              :show-status="false"
               size="sm"
-              :status="socketService.isConnected() ? 'online' : 'offline'"
-              show-status
             />
             <span class="text-sm font-medium text-secondary-700">
               {{ currentUser?.name || currentUser?.username }}

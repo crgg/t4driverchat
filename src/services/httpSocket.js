@@ -6,7 +6,6 @@
 import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
-import router from '@/router';
 
 // Create axios instance
 const httpSocket = axios.create({

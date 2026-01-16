@@ -129,17 +129,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
+import { MagnifyingGlassIcon, FunnelIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+
 import { useContactsStore } from '@/stores/contacts';
 import { useChatStore } from '@/stores/chat';
 import { debounce } from '@/utils/helpers';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
 import ContactItem from '@/components/chat/ContactItem.vue';
-import { MagnifyingGlassIcon, FunnelIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import { useAuthStore } from '@/stores/auth';
 
 const contactsStore = useContactsStore();
 const chatStore = useChatStore();
+const authStore = useAuthStore();
 
 const {
   currentContacts,
@@ -153,6 +156,7 @@ const {
   activeFiltersCount,
 } = storeToRefs(contactsStore);
 
+const { username } = storeToRefs(authStore);
 const showFilters = ref(false);
 
 const handleFilterChange = () => {
@@ -174,16 +178,26 @@ const handleContactClick = async (contact) => {
     chatStore.setSessionDriver(contact.DRIVER_ID, sessionId);
   }
 
-  // Set current room
-  chatStore.setCurrentRoom({
+  const roomPayload = {
     id: sessionId,
-    contact,
-  });
+    user1_id: username.value,
+    user2_id: contact.DRIVER_ID,
+  };
 
   // Load messages
   if (sessionId) {
-    await chatStore.loadMessages(sessionId);
-    await chatStore.markAsRead(sessionId);
+    chatStore.setCurrentRoom({ ...roomPayload, contact });
+    chatStore.openedChatWeb(roomPayload);
+    chatStore.loadMessages(sessionId);
+    chatStore.markAsRead(sessionId, roomPayload.user1_id);
+  } else {
+    chatStore.setSyncSession(roomPayload, (newRoom) => {
+      chatStore.setCurrentRoom({ ...newRoom, contact });
+      chatStore.openedChatWeb(newRoom);
+      chatStore.loadMessages(newRoom.id);
+      chatStore.markAsRead(newRoom.id, newRoom.user1_id);
+      chatStore.setSessionDriver(contact.DRIVER_ID, newRoom.id);
+    });
   }
 };
 </script>

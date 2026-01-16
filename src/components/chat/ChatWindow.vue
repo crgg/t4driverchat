@@ -53,13 +53,18 @@
         </div>
 
         <!-- Messages -->
-        <div v-else class="space-y-4">
+        <div v-else class="space-y-2">
           <MessageBubble
-            v-for="message in currentMessages"
+            v-for="(message, index) in currentMessages"
             :key="message.id"
             :message="message"
-            :is-own="message.user_send === authStore.username"
+            :is-own="message.user === authStore.user?.username"
+            :is-last-own="isLastOwnMessage(index)"
+            :is-editing="editingMessage?.id === message.id"
+            @edit="handleEditMessage"
+            @delete="handleDeleteMessage"
           />
+          <!-- :is-online="isContactOnline" -->
         </div>
 
         <!-- Typing Indicator -->
@@ -94,25 +99,42 @@
 
           <!-- Message Input -->
           <div class="flex-1">
+            <div
+              v-if="editingMessage"
+              class="mb-2 flex items-center gap-2 text-sm text-secondary-600"
+            >
+              <span class="font-medium">Editing message</span>
+              <button class="text-red-500 hover:text-red-700" @click="cancelEdit">Cancel</button>
+            </div>
             <textarea
               v-model="messageText"
               rows="1"
               class="w-full px-4 py-2 border border-secondary-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent custom-scrollbar"
-              placeholder="Type your message..."
+              :placeholder="editingMessage ? 'Edit your message...' : 'Type your message...'"
               :disabled="sending"
-              @keydown.enter.exact.prevent="handleSend"
+              @keydown.enter.exact.prevent="editingMessage ? handleUpdateMessage() : handleSend()"
               @keydown.shift.enter.exact="handleNewLine"
+              @keydown.esc="cancelEdit"
               @input="handleTyping"
             ></textarea>
           </div>
 
-          <!-- Send Button -->
+          <!-- Send/Update Button -->
           <button
+            v-if="!editingMessage"
             class="btn btn-primary px-6 flex-shrink-0"
             :disabled="!messageText.trim() || sending"
             @click="handleSend"
           >
             <PaperAirplaneIcon class="h-5 w-5" />
+          </button>
+          <button
+            v-else
+            class="btn btn-warning px-6 flex-shrink-0"
+            :disabled="!messageText.trim() || sending"
+            @click="handleUpdateMessage"
+          >
+            <PencilIcon class="h-5 w-5" />
           </button>
         </div>
 
@@ -152,6 +174,7 @@ import {
   XMarkIcon,
   PaperClipIcon,
   PaperAirplaneIcon,
+  PencilIcon,
 } from '@heroicons/vue/24/outline';
 
 const authStore = useAuthStore();
@@ -168,16 +191,14 @@ const messageText = ref('');
 const sending = ref(false);
 const uploading = ref(false);
 const uploadProgress = ref(0);
-const isTyping = ref(false);
+// const isTyping = ref(false);
 const typingTimeout = ref(null);
+const editingMessage = ref(null);
 
-const sessionId = computed(() => {
-  return currentRoom.value?.id;
-});
-
-const isContactOnlineComputed = computed(() => {
-  return currentRoom.value ? isContactOnline.value(currentRoom.value.contact.DRIVER_ID) : false;
-});
+const sessionId = computed(() => currentRoom.value?.id);
+const isTyping = computed(() =>
+  chatStore.isUserTyping(currentRoom.value?.id, authStore.user?.username)
+);
 
 // Watch for room changes
 watch(currentRoom, (newRoom, oldRoom) => {
@@ -210,15 +231,20 @@ const handleSend = async () => {
   sending.value = true;
 
   try {
-    await chatStore.sendMessage({
+    const newMessagePayload = {
       session_id: currentRoom.value.id,
-      user_send: authStore.username,
-      user_receive: currentRoom.value.contact.DRIVER_ID,
+      type: 1,
       message: text,
+      where: 'web',
+      driver: currentRoom.value.contact.DRIVER_ID,
+      user: authStore.user?.username || authStore.username,
+      trip: currentRoom.value.contact.CURRENT_TRIP || '',
       content: 'text',
-    });
+      uuid: crypto.randomUUID(),
+    };
 
-    // Clear input and draft
+    await chatStore.sendMessage(newMessagePayload);
+
     messageText.value = '';
     chatStore.clearDraft(currentRoom.value.id);
 
@@ -246,8 +272,9 @@ const handleTyping = throttle(() => {
   // Send typing indicator
   if (messageText.value.trim()) {
     socketService.sendTyping({
-      sessionId: currentRoom.value.id,
-      username: authStore.username,
+      session_id: currentRoom.value.id,
+      user: authStore.username,
+      from: 'WEB',
     });
 
     // Clear previous timeout
@@ -258,8 +285,9 @@ const handleTyping = throttle(() => {
     // Stop typing after 3 seconds
     typingTimeout.value = setTimeout(() => {
       socketService.stopTyping({
-        sessionId: currentRoom.value.id,
-        username: authStore.username,
+        session_id: currentRoom.value.id,
+        user: authStore.username,
+        from: 'WEB',
       });
     }, 3000);
   }
@@ -292,26 +320,40 @@ const handleFileSelect = async (event) => {
   uploadProgress.value = 0;
 
   try {
-    const result = await chatStore.uploadFile(file, (progressEvent) => {
-      uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+    // Get socket server URL from meta tag or config
+    const socketServerUrl =
+      document.querySelector('meta[name="MIX_URL_CHAT_SERVER"]')?.content || config.socket.url;
+    const uploadUrl = `${socketServerUrl}/upload-file`;
+
+    const formData = new FormData();
+    formData.append('content', isImage ? 'image' : 'pdf');
+    formData.append('driver', currentRoom.value.contact.DRIVER_ID);
+    formData.append('session_id', currentRoom.value.id);
+    formData.append('where', 'WEB');
+    formData.append('user', authStore.user.username);
+    formData.append('trip', currentRoom.value.contact.CURRENT_TRIP || '');
+    formData.append('image', file);
+    formData.append('token', authStore.token || '');
+
+    // Upload file using axios
+    const axios = (await import('axios')).default;
+    await axios.post(uploadUrl, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      },
     });
 
-    if (result.success) {
-      // Send file message
-      await chatStore.sendMessage({
-        session_id: currentRoom.value.id,
-        user_send: authStore.username,
-        user_receive: currentRoom.value.contact.DRIVER_ID,
-        message: result.data.url,
-        content: isImage ? 'image' : 'pdf',
-      });
-
-      notificationsStore.showSuccess('File uploaded successfully');
+    notificationsStore.showSuccess('File uploaded successfully');
+  } catch (error) {
+    console.error('Upload error:', error);
+    if (error.response?.status === 413) {
+      notificationsStore.showError('File too large');
     } else {
       notificationsStore.showError('Failed to upload file');
     }
-  } catch (error) {
-    notificationsStore.showError('Failed to upload file');
   } finally {
     uploading.value = false;
     uploadProgress.value = 0;
@@ -325,6 +367,88 @@ const handleFileSelect = async (event) => {
 
 const closeChatWindow = () => {
   chatStore.leaveCurrentRoom();
+};
+
+const isLastOwnMessage = (index) => {
+  const username = authStore.user?.username;
+  for (let i = currentMessages.value.length - 1; i >= 0; i--) {
+    if (currentMessages.value[i].user === username) {
+      return i === index;
+    }
+  }
+  return false;
+};
+
+const handleEditMessage = (message) => {
+  editingMessage.value = message;
+  messageText.value = message.message;
+
+  // Focus textarea
+  nextTick(() => {
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(messageText.value.length, messageText.value.length);
+    }
+  });
+};
+
+const handleUpdateMessage = async () => {
+  if (!messageText.value.trim() || !editingMessage.value) return;
+
+  try {
+    socketService.updateMessage({
+      messageId: editingMessage.value.id,
+      newText: messageText.value.trim(),
+    });
+
+    // Update locally
+    const index = currentMessages.value.findIndex((m) => m.id === editingMessage.value.id);
+    if (index !== -1) {
+      currentMessages.value[index].message = messageText.value.trim();
+    }
+
+    messageText.value = '';
+    editingMessage.value = null;
+
+    notificationsStore.showSuccess('Message updated');
+  } catch (error) {
+    notificationsStore.showError('Failed to update message');
+  }
+};
+
+const cancelEdit = () => {
+  editingMessage.value = null;
+  messageText.value = '';
+};
+
+const handleDeleteMessage = async (message) => {
+  try {
+    const confirm = await notificationsStore.showConfirm(
+      'Are you sure you want to delete this message?',
+      'Delete Message'
+    );
+
+    if (!confirm) return;
+
+    socketService.destroyMessage({
+      messageId: message.id,
+      sessionId: message.session_id,
+      withLastMessage: true,
+      from: authStore.user.username,
+      to: currentRoom.value.contact.DRIVER_ID,
+    });
+
+    // Remove locally
+    const index = currentMessages.value.findIndex((m) => m.id === message.id);
+    if (index !== -1) {
+      currentMessages.value.splice(index, 1);
+    }
+
+    notificationsStore.showSuccess('Message deleted');
+  } catch (error) {
+    notificationsStore.showError('Failed to delete message');
+  }
 };
 </script>
 
