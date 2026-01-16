@@ -25,16 +25,24 @@ export const useContactsStore = defineStore('contacts', () => {
   const otherCodeFilters = ref([]);
 
   // Getters
+  const hasActiveFilters = computed(() => {
+    return (
+      searchValue.value.length > 0 ||
+      terminalZoneFilters.value.length > 0 ||
+      otherCodeFilters.value.length > 0
+    );
+  });
+
   const currentContacts = computed(() => {
     const chatStore = useChatStore();
     const { lastMessages, sessionDrivers } = chatStore;
 
-    // Get base list based on filter
+    // Get base list based on filter - use filtered lists if any filters are active
     let list = [];
     if (filterBy.value === 'driver') {
-      list = searchValue.value ? filteredDrivers.value : drivers.value;
+      list = hasActiveFilters.value ? filteredDrivers.value : drivers.value;
     } else {
-      list = searchValue.value ? filteredCarriers.value : carriers.value;
+      list = hasActiveFilters.value ? filteredCarriers.value : carriers.value;
     }
 
     // Separate contacts with and without messages
@@ -108,6 +116,9 @@ export const useContactsStore = defineStore('contacts', () => {
 
       drivers.value = processedData;
 
+      // Apply filters to initialize filtered lists
+      applyFilters();
+
       return { success: true, data: processedData };
     } catch (error) {
       console.error('Failed to load drivers:', error);
@@ -137,6 +148,9 @@ export const useContactsStore = defineStore('contacts', () => {
       }));
 
       carriers.value = processedData;
+
+      // Apply filters to initialize filtered lists
+      applyFilters();
 
       return { success: true, data: processedData };
     } catch (error) {
@@ -229,7 +243,7 @@ export const useContactsStore = defineStore('contacts', () => {
     } else {
       terminalZoneFilters.value.push(zone);
     }
-    applyFilters();
+    // Removed auto-apply, must call applyFilters() manually
   };
 
   /**
@@ -242,6 +256,20 @@ export const useContactsStore = defineStore('contacts', () => {
       otherCodeFilters.value.splice(index, 1);
     } else {
       otherCodeFilters.value.push(code);
+    }
+    // Removed auto-apply, must call applyFilters() manually
+  };
+
+  /**
+   * Set filters and apply them
+   * @param {Object} filters - { terminalZones: [], otherCodes: [] }
+   */
+  const setFilters = (filters) => {
+    if (filters.terminalZones !== undefined) {
+      terminalZoneFilters.value = [...filters.terminalZones];
+    }
+    if (filters.otherCodes !== undefined) {
+      otherCodeFilters.value = [...filters.otherCodes];
     }
     applyFilters();
   };
@@ -366,6 +394,7 @@ export const useContactsStore = defineStore('contacts', () => {
     setFilterBy,
     toggleTerminalZoneFilter,
     toggleOtherCodeFilter,
+    setFilters,
     clearFilters,
     setConnectedUsers,
     addConnectedUser,

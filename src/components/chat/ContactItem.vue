@@ -16,7 +16,7 @@
     <!-- Contact Info -->
     <div class="flex-1 min-w-0">
       <!-- Driver ID and Session -->
-      <div class="flex items-center gap-1 text-xs text-primary-600 mb-1">
+      <div class="flex items-center gap-1 text-xs text-primary-600 mb-0">
         <span class="font-bold">{{ sessionId }}</span>
         <span>#{{ contact.DRIVER_ID }}</span>
       </div>
@@ -27,7 +27,10 @@
       </p>
 
       <!-- Last Message -->
-      <div v-if="lastMessage" class="flex items-center gap-1 text-sm text-secondary-600 truncate">
+      <div
+        v-if="lastMessage"
+        class="flex items-center gap-1 text-sm text-secondary-400 ms-4 truncate"
+      >
         <component :is="messageIcon" class="h-4 w-4 flex-shrink-0" />
         <span class="truncate">{{ messagePreview }}</span>
       </div>
@@ -35,7 +38,7 @@
       <!-- Device Info -->
       <div
         v-if="deviceInfo"
-        class="flex items-center gap-2 text-xs text-secondary-500 mt-1 flex-wrap"
+        class="flex items-center gap-4 text-xs text-secondary-500 mt-1 flex-wrap"
       >
         <span v-if="deviceInfo.allow_location">
           Allow: <strong>{{ deviceInfo.allow_location }}</strong>
@@ -55,7 +58,7 @@
       <!-- Driver Info (Terminal Zone, Other Code, Status) -->
       <div
         v-if="showDriverInfo"
-        class="flex items-center gap-2 text-xs text-secondary-500 mt-1 flex-wrap"
+        class="flex items-center gap-4 text-xs text-secondary-500 mt-1 flex-wrap"
       >
         <span v-if="contact.TERMINAL_ZONE">
           <strong>T. Zone</strong> {{ contact.TERMINAL_ZONE }}

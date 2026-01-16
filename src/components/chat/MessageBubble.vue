@@ -50,7 +50,7 @@
             <img
               :src="message.message"
               alt="Image"
-              class="rounded-xl max-w-full h-auto transition-transform duration-300 group-hover/image:scale-[1.02]"
+              class="rounded-xl w-40 object-cover object-top h-40 transition-transform duration-300 group-hover/image:scale-[1.02]"
               loading="lazy"
             />
             <div
@@ -70,18 +70,16 @@
           <a
             :href="message.message"
             target="_blank"
-            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-secondary-800/50 dark:hover:bg-secondary-800/80 transition-all duration-200 group/file"
+            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
           >
             <div
-              class="flex-shrink-0 p-2 rounded-lg bg-red-100 dark:bg-red-900/30 group-hover/file:scale-110 transition-transform duration-200"
+              class="flex-shrink-0 p-2 rounded-lg bg-red-100 group-hover/file:scale-110 transition-transform duration-200"
             >
-              <DocumentIcon class="h-6 w-6 text-red-600 dark:text-red-400" />
+              <DocumentIcon class="h-6 w-6 text-red-600" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm truncate text-secondary-900 dark:text-secondary-100">
-                PDF Document
-              </p>
-              <p class="text-xs text-secondary-500 dark:text-secondary-400">Click to view</p>
+              <p class="font-medium text-sm truncate text-secondary-900">PDF Document</p>
+              <p class="text-xs text-secondary-500">Click to view</p>
             </div>
             <ArrowDownTrayIcon
               class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
@@ -94,18 +92,16 @@
           <a
             :href="message.message"
             target="_blank"
-            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-secondary-800/50 dark:hover:bg-secondary-800/80 transition-all duration-200 group/file"
+            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
           >
             <div
-              class="flex-shrink-0 p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 group-hover/file:scale-110 transition-transform duration-200"
+              class="flex-shrink-0 p-2 rounded-lg bg-purple-100 group-hover/file:scale-110 transition-transform duration-200"
             >
-              <VideoCameraIcon class="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <VideoCameraIcon class="h-6 w-6 text-purple-600" />
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm truncate text-secondary-900 dark:text-secondary-100">
-                Video
-              </p>
-              <p class="text-xs text-secondary-500 dark:text-secondary-400">Click to play</p>
+              <p class="font-medium text-sm truncate text-secondary-900">Video</p>
+              <p class="text-xs text-secondary-500">Click to play</p>
             </div>
             <PlayIcon
               class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
@@ -116,9 +112,9 @@
         <!-- Loading overlay -->
         <div
           v-if="message.sending"
-          class="absolute inset-0 bg-white/50 dark:bg-secondary-900/50 backdrop-blur-[1px] rounded-2xl flex items-center justify-center"
+          class="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl flex items-center justify-center"
         >
-          <div class="flex items-center gap-2 text-secondary-600 dark:text-secondary-400">
+          <div class="flex items-center gap-2 text-secondary-600">
             <ArrowPathIcon class="h-4 w-4 animate-spin" />
             <span class="text-xs font-medium">Sending...</span>
           </div>
@@ -131,7 +127,7 @@
         :class="isOwn ? 'justify-end' : 'justify-start'"
       >
         <!-- Time -->
-        <span class="text-xs text-secondary-500 dark:text-secondary-400 font-medium">
+        <span class="text-xs text-secondary-500 font-medium">
           {{ formatTime(message.created_at) }}
         </span>
 
@@ -150,17 +146,14 @@
           </div>
 
           <!-- Read (double check) -->
-          <div
-            v-else-if="message.read_at"
-            class="flex items-center text-primary-600 dark:text-primary-400"
-          >
-            <CheckIcon class="h-3.5 w-3.5 -mr-1.5" />
-            <CheckIcon class="h-3.5 w-3.5" />
+          <div v-else-if="message.read_at" class="flex items-center text-primary-600">
+            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5 -mr-1.5" />
+            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
           </div>
 
           <!-- Delivered (single check) -->
           <div v-else class="flex items-center text-secondary-400">
-            <CheckIcon class="h-3.5 w-3.5" />
+            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
           </div>
         </div>
       </div>
