@@ -1,5 +1,5 @@
 <template>
-  <div class="w-96 bg-white border-r border-secondary-200 flex flex-col">
+  <div class="w-[32rem] bg-white border-r border-secondary-200 flex flex-col">
     <!-- Search and Filters -->
     <div class="p-4 border-b border-secondary-200">
       <!-- Type Selector -->

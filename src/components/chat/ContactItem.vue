@@ -33,18 +33,40 @@
       </div>
 
       <!-- Device Info -->
-      <div v-if="deviceInfo" class="flex items-center gap-2 text-xs text-secondary-500 mt-1">
+      <div
+        v-if="deviceInfo"
+        class="flex items-center gap-2 text-xs text-secondary-500 mt-1 flex-wrap"
+      >
         <span v-if="deviceInfo.allow_location">
           Allow: <strong>{{ deviceInfo.allow_location }}</strong>
         </span>
         <span v-if="deviceInfo.phone_version">
           Version: <strong>{{ deviceInfo.phone_version }}</strong>
         </span>
+        <span v-if="deviceInfo.battery_level" class="flex items-center gap-1">
+          <component :is="batteryIcon" class="h-3.5 w-3.5" :class="batteryIconClass" />
+          <strong>{{ deviceInfo.battery_level }}</strong>
+          <span v-if="deviceInfo.battery_state" class="text-xs">
+            {{ deviceInfo.battery_state }}
+          </span>
+        </span>
+      </div>
+
+      <!-- Driver Info (Terminal Zone, Other Code, Status) -->
+      <div
+        v-if="showDriverInfo"
+        class="flex items-center gap-2 text-xs text-secondary-500 mt-1 flex-wrap"
+      >
+        <span v-if="contact.TERMINAL_ZONE">
+          <strong>T. Zone</strong> {{ contact.TERMINAL_ZONE }}
+        </span>
+        <span v-if="contact.OTHER_CODE"> <strong>O. Code</strong> {{ contact.OTHER_CODE }} </span>
+        <span v-if="contact.STATUS"> <strong>Status</strong> {{ contact.STATUS }} </span>
       </div>
     </div>
 
-    <!-- Time -->
-    <div v-if="lastMessage" class="text-xs text-secondary-500 flex-shrink-0">
+    <!-- Time/Date -->
+    <div v-if="lastMessage" class="text-xs text-secondary-500 flex-shrink-0 text-right">
       {{ formatTime(lastMessage.created_at) }}
     </div>
   </div>
@@ -53,12 +75,15 @@
 <script setup>
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useChatStore } from '@/stores/chat';
+
+import { PhotoIcon, DocumentIcon, VideoCameraIcon } from '@heroicons/vue/24/outline';
+import { Battery100Icon, Battery50Icon, Battery0Icon } from '@heroicons/vue/24/solid';
+import moment from 'moment';
+
+import Avatar from '@/components/common/Avatar.vue';
 import { useContactsStore } from '@/stores/contacts';
 import { truncateText } from '@/utils/helpers';
-import moment from 'moment';
-import Avatar from '@/components/common/Avatar.vue';
-import { PhotoIcon, DocumentIcon, VideoCameraIcon } from '@heroicons/vue/24/outline';
+import { useChatStore } from '@/stores/chat';
 
 const props = defineProps({
   contact: {
@@ -104,6 +129,39 @@ const deviceInfo = computed(() => {
   return deviceInformation.value.get(props.contact.DRIVER_ID);
 });
 
+const showDriverInfo = computed(() => {
+  return props.contact.TERMINAL_ZONE || props.contact.OTHER_CODE || props.contact.STATUS;
+});
+
+const batteryLevel = computed(() => {
+  if (!deviceInfo.value?.battery_level) return 0;
+  return parseInt(deviceInfo.value.battery_level) || 0;
+});
+
+const batteryIcon = computed(() => {
+  const level = batteryLevel.value;
+
+  if (level <= 20) {
+    return Battery0Icon;
+  } else if (level <= 50) {
+    return Battery50Icon;
+  } else {
+    return Battery100Icon;
+  }
+});
+
+const batteryIconClass = computed(() => {
+  const level = batteryLevel.value;
+
+  if (level <= 20) {
+    return 'text-red-500';
+  } else if (level <= 50) {
+    return 'text-yellow-500';
+  } else {
+    return 'text-green-500';
+  }
+});
+
 const messageIcon = computed(() => {
   if (!lastMessage.value) return null;
 
@@ -137,6 +195,34 @@ const messagePreview = computed(() => {
 });
 
 const formatTime = (time) => {
-  return moment(time).format('HH:mm');
+  if (!time) return '';
+
+  const messageTime = moment(time);
+  const now = moment();
+
+  // If today, show only time
+  if (now.isSame(messageTime, 'day')) {
+    return messageTime.format('h:mm A');
+  }
+
+  // If yesterday
+  const yesterday = moment().subtract(1, 'days');
+  if (yesterday.isSame(messageTime, 'day')) {
+    return 'Yesterday';
+  }
+
+  // If within this week, show day name
+  const daysAgo = now.diff(messageTime, 'days');
+  if (daysAgo < 7) {
+    return messageTime.format('ddd'); // Mon, Tue, etc.
+  }
+
+  // If within this year, show month and day
+  if (now.isSame(messageTime, 'year')) {
+    return messageTime.format('MM/DD');
+  }
+
+  // Otherwise show full date
+  return messageTime.format('MM/DD/YYYY');
 };
 </script>
