@@ -1,0 +1,189 @@
+<template>
+  <div
+    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4"
+  >
+    <div class="max-w-md w-full">
+      <!-- Logo/Brand -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-2">
+          {{ config.app.name }}
+        </h1>
+        <p class="text-primary-100">Sign in to continue</p>
+      </div>
+
+      <!-- Login Form Card -->
+      <div class="card p-8">
+        <form class="space-y-6" @submit.prevent="handleSubmit">
+          <!-- Email Field -->
+          <div>
+            <label for="email" class="block text-sm font-medium text-secondary-700 mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              required
+              class="input-field"
+              :class="{ 'border-red-500': errors.email }"
+              placeholder="Enter your email"
+              :disabled="loading"
+            />
+            <p v-if="errors.email" class="mt-1 text-sm text-red-600">
+              {{ errors.email }}
+            </p>
+          </div>
+
+          <!-- Password Field -->
+          <div>
+            <label for="password" class="block text-sm font-medium text-secondary-700 mb-2">
+              Password
+            </label>
+            <div class="relative">
+              <input
+                id="password"
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                class="input-field pr-10"
+                :class="{ 'border-red-500': errors.password }"
+                placeholder="Enter your password"
+                :disabled="loading"
+              />
+              <button
+                type="button"
+                class="absolute inset-y-0 right-0 pr-3 flex items-center"
+                :disabled="loading"
+                @click="showPassword = !showPassword"
+              >
+                <EyeIcon v-if="!showPassword" class="h-5 w-5 text-secondary-400" />
+                <EyeSlashIcon v-else class="h-5 w-5 text-secondary-400" />
+              </button>
+            </div>
+            <p v-if="errors.password" class="mt-1 text-sm text-red-600">
+              {{ errors.password }}
+            </p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="errors.general" class="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-800">
+              {{ errors.general }}
+            </p>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="w-full btn btn-primary py-3 text-lg" :disabled="loading">
+            <span v-if="!loading">Sign In</span>
+            <span v-else class="flex items-center justify-center">
+              <svg
+                class="animate-spin h-5 w-5 mr-2"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Signing in...
+            </span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-6">
+        <p class="text-primary-100 text-sm">
+          &copy; {{ new Date().getFullYear() }} {{ config.app.name }}. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
+import config from '@/config';
+import gsap from 'gsap';
+
+const router = useRouter();
+const route = useRoute();
+const authStore = useAuthStore();
+
+const form = reactive({
+  email: '',
+  password: '',
+});
+
+const errors = reactive({
+  email: '',
+  password: '',
+  general: '',
+});
+
+const showPassword = ref(false);
+const loading = ref(false);
+
+const handleSubmit = async () => {
+  // Clear previous errors
+  errors.email = '';
+  errors.password = '';
+  errors.general = '';
+
+  // Basic validation
+  if (!form.email) {
+    errors.email = 'Email is required';
+    return;
+  }
+
+  if (!form.password) {
+    errors.password = 'Password is required';
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    const result = await authStore.login({
+      email: form.email,
+      password: form.password,
+    });
+
+    if (result.success) {
+      // Redirect to intended page or chat
+      const redirect = route.query.redirect || '/chat';
+      router.push(redirect);
+    } else {
+      errors.general = result.error || 'Invalid credentials';
+    }
+  } catch (error) {
+    errors.general = 'An error occurred. Please try again.';
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  // Animate form on mount
+  gsap.from('.card', {
+    duration: 0.6,
+    y: 50,
+    opacity: 0,
+    ease: 'power3.out',
+  });
+});
+</script>

@@ -1,0 +1,37 @@
+{
+  "name": "chat-microservice",
+  "version": "1.0.0",
+  "description": "Modern Vue 3 Chat Microservice",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
+    "format": "prettier --write \"src/**/*.{js,jsx,vue,json,css,scss,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,vue,json,css,scss,md}\""
+  },
+  "dependencies": {
+    "vue": "^3.4.15",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.5",
+    "socket.io-client": "^2.5.0",
+    "gsap": "^3.12.4",
+    "moment": "^2.30.1",
+    "@heroicons/vue": "^2.1.1",
+    "sweetalert2": "^11.10.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.3",
+    "vite": "^5.0.11",
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.33",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "prettier": "^3.2.4",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3"
+  }
+}
