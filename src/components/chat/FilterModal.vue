@@ -3,15 +3,15 @@
     <Transition name="modal">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        class="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4 bg-black/50 backdrop-blur-sm"
         @click.self="handleCancel"
       >
         <div
-          class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col"
+          class="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[85vh] md:max-h-[80vh] flex flex-col"
           @click.stop
         >
           <!-- Header -->
-          <div class="flex items-center justify-between p-6 border-b border-secondary-200">
+          <div class="flex items-center justify-between p-4 md:p-6 border-b border-secondary-200">
             <div class="flex items-center gap-3">
               <FunnelIcon class="h-6 w-6 text-primary-600" />
               <h2 class="text-xl font-semibold text-secondary-900">Filter Contacts</h2>
@@ -25,7 +25,7 @@
           </div>
 
           <!-- Content -->
-          <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
             <!-- Terminal Zones -->
             <div v-if="terminalZones.length > 0">
               <h3 class="text-sm font-semibold text-secondary-700 mb-3 flex items-center gap-2">
@@ -95,10 +95,12 @@
           </div>
 
           <!-- Footer -->
-          <div class="flex items-center justify-between gap-3 p-6 border-t border-secondary-200">
+          <div
+            class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 md:p-6 border-t border-secondary-200"
+          >
             <!-- Clear Filters Button -->
             <button
-              class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-3 md:px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
               :disabled="!hasSelections"
               @click="handleClearFilters"
             >
@@ -106,15 +108,15 @@
             </button>
 
             <!-- Action Buttons -->
-            <div class="flex gap-3">
+            <div class="flex gap-2 md:gap-3">
               <button
-                class="px-6 py-2 text-sm font-medium text-secondary-700 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors"
+                class="px-4 md:px-6 py-2 text-sm font-medium text-secondary-700 bg-secondary-100 hover:bg-secondary-200 active:bg-secondary-300 rounded-lg transition-colors flex-1 sm:flex-none"
                 @click="handleCancel"
               >
                 Cancel
               </button>
               <button
-                class="px-6 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-4 md:px-6 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none"
                 :disabled="!hasSelections"
                 @click="handleApplyFilters"
               >

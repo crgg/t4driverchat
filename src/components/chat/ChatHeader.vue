@@ -1,32 +1,34 @@
 <template>
-  <header class="bg-white border-b border-secondary-200 px-6 py-4">
+  <header class="bg-white border-b border-secondary-200 px-3 md:px-6 py-3 md:py-4">
     <div class="flex items-center justify-between">
       <!-- Logo/Title -->
-      <div class="flex items-center gap-3">
-        <ChatBubbleLeftRightIcon class="h-8 w-8 text-primary-600" />
-        <h1 class="text-xl font-semibold text-secondary-900">
+      <div class="flex items-center gap-2 md:gap-3">
+        <ChatBubbleLeftRightIcon class="h-6 md:h-8 w-6 md:w-8 text-primary-600" />
+        <h1 class="text-base md:text-xl font-semibold text-secondary-900 truncate">
           {{ config.app.name }}
         </h1>
       </div>
 
       <!-- User Info & Actions -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 md:gap-4">
         <!-- Unread Count -->
         <button
           v-if="hasUnread"
-          class="relative p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+          class="relative p-1.5 md:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
           @click="showNotifications = true"
         >
-          <BellIcon class="h-6 w-6 text-secondary-600" />
-          <span class="absolute top-0 right-0 badge badge-danger">
-            {{ totalUnread }}
+          <BellIcon class="h-5 md:h-6 w-5 md:w-6 text-secondary-600" />
+          <span
+            class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center"
+          >
+            {{ totalUnread > 99 ? '99+' : totalUnread }}
           </span>
         </button>
 
         <!-- User Menu -->
         <div class="relative">
           <button
-            class="flex items-center gap-2 p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+            class="flex items-center gap-1 md:gap-2 p-1.5 md:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
             @click="showUserMenu = !showUserMenu"
           >
             <Avatar
@@ -36,10 +38,12 @@
               :show-status="false"
               size="sm"
             />
-            <span class="text-sm font-medium text-secondary-700">
+            <span
+              class="hidden sm:block text-sm font-medium text-secondary-700 max-w-[120px] truncate"
+            >
               {{ currentUser?.name || currentUser?.username }}
             </span>
-            <ChevronDownIcon class="h-4 w-4 text-secondary-600" />
+            <ChevronDownIcon class="hidden sm:block h-4 w-4 text-secondary-600" />
           </button>
 
           <!-- Dropdown Menu -->

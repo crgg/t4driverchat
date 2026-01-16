@@ -4,18 +4,36 @@
     <ChatHeader />
 
     <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden relative">
       <!-- Contacts Sidebar -->
-      <ContactList />
+      <ContactList
+        :class="[
+          'transition-transform duration-300 ease-in-out',
+          'absolute md:relative inset-y-0 left-0 z-20 w-full',
+          'md:w-80 lg:w-96 xl:w-[32rem]',
+          showMobileChat ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
+        ]"
+        @contact-selected="handleContactSelected"
+      />
 
       <!-- Chat Window -->
-      <ChatWindow />
+      <ChatWindow
+        :class="[
+          'transition-transform duration-300 ease-in-out',
+          'absolute md:relative inset-0 z-10',
+          'md:flex-1',
+          showMobileChat ? 'translate-x-0' : 'translate-x-full md:translate-x-0',
+        ]"
+        @close-chat="handleCloseChat"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { storeToRefs } from 'pinia';
+
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import { useContactsStore } from '@/stores/contacts';
@@ -31,6 +49,21 @@ const chatStore = useChatStore();
 const contactsStore = useContactsStore();
 const notificationsStore = useNotificationsStore();
 const { emit } = useSocket();
+
+// Responsive state
+const { currentRoom } = storeToRefs(chatStore);
+const showMobileChat = computed(() => currentRoom.value !== null);
+
+// Mobile navigation handlers
+const handleContactSelected = () => {
+  // When a contact is selected, the chat will automatically show in mobile
+  // because currentRoom will be set
+};
+
+const handleCloseChat = () => {
+  // Close the current chat (for mobile back button)
+  chatStore.leaveCurrentRoom();
+};
 
 onMounted(() => {
   initializeChat();

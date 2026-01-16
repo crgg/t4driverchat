@@ -1,5 +1,5 @@
 <template>
-  <div class="w-[32rem] bg-white border-r border-secondary-200 flex flex-col">
+  <div class="bg-white border-r border-secondary-200 flex flex-col h-full">
     <!-- Search and Filters -->
     <div class="p-4 border-b border-secondary-200">
       <!-- Type Selector -->
@@ -12,9 +12,9 @@
         <option value="carrier">Type Carriers</option>
       </select>
 
-      <div class="flex">
+      <div class="flex items-center gap-1 mb-2">
         <!-- Search Input -->
-        <div class="relative mb-3">
+        <div class="relative flex-1">
           <MagnifyingGlassIcon
             class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-secondary-400"
           />
@@ -28,16 +28,20 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-cente relative gap-2">
           <button
-            class="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors"
-            :class="{ 'bg-primary-100 text-primary-700': activeFiltersCount > 0 }"
+            class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
+            :class="{
+              'bg-primary-200 text-primary-700 hover:bg-primary-300': activeFiltersCount > 0,
+            }"
             @click="showFilterModal = true"
           >
-            <FunnelIcon class="h-4 w-4" />
-            <span class="text-sm font-medium">
-              Filters
-              <span v-if="activeFiltersCount > 0" class="ml-1"> ({{ activeFiltersCount }}) </span>
+            <FunnelIcon class="h-5 w-5" />
+            <span
+              v-if="activeFiltersCount > 0"
+              class="text-sm absolute -top-3 -right-2 p-1 text-primary-700 font-bold"
+            >
+              {{ activeFiltersCount }}
             </span>
           </button>
         </div>
@@ -105,6 +109,7 @@ import FilterModal from '@/components/chat/FilterModal.vue';
 
 const contactsStore = useContactsStore();
 const chatStore = useChatStore();
+const { currentRoom, messages } = storeToRefs(chatStore);
 const authStore = useAuthStore();
 
 const {
@@ -121,6 +126,9 @@ const {
 
 const { username } = storeToRefs(authStore);
 const showFilterModal = ref(false);
+
+// Emit for mobile navigation
+const emit = defineEmits(['contact-selected']);
 
 const handleFilterChange = () => {
   if (filterBy.value === 'carrier') {
@@ -141,11 +149,17 @@ const handleContactClick = async (contact) => {
     chatStore.setSessionDriver(contact.DRIVER_ID, sessionId);
   }
 
+  if (!!currentRoom.value?.id && currentRoom.value.id === sessionId) return;
+
   const roomPayload = {
     id: sessionId,
     user1_id: username.value,
     user2_id: contact.DRIVER_ID,
   };
+
+  // Emit event for mobile navigation
+  emit('contact-selected');
+  messages.value = [];
 
   // Load messages
   if (sessionId) {

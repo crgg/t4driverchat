@@ -228,7 +228,7 @@ class SocketService {
    * @param {string} room
    */
   leaveRoom(room) {
-    this.send('leave:room', { room });
+    this.send('salir', room);
   }
 
   /**

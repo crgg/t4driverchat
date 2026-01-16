@@ -1,76 +1,80 @@
 <template>
   <div
-    class="flex items-center gap-3 p-4 hover:bg-secondary-50 cursor-pointer transition-colors border-b border-secondary-100"
+    class="flex items-center relative gap-2 md:gap-3 p-3 md:p-4 hover:bg-secondary-50 active:bg-secondary-100 cursor-pointer transition-colors border-b border-secondary-100"
     :class="{ 'bg-primary-50': isSelected }"
   >
     <!-- Avatar -->
     <Avatar
       :name="contact.NAME"
       :src="contact.picture_name"
-      size="md"
+      size="sm"
       :status="isOnline ? 'online' : 'offline'"
       show-status
       :badge="unreadCount > 0 ? unreadCount : ''"
     />
 
+    <div
+      v-if="lastMessage"
+      class="text-[10px] md:text-xs text-secondary-400 flex-shrink-0 text-right absolute top-3 right-3"
+    >
+      {{ formatTime(lastMessage.created_at) }}
+    </div>
+
     <!-- Contact Info -->
     <div class="flex-1 min-w-0">
       <!-- Driver ID and Session -->
-      <div class="flex items-center gap-1 text-xs text-primary-600 mb-0">
-        <span class="font-bold">{{ sessionId }}</span>
+      <div class="flex items-center gap-1 text-[11px] text-primary-700 mb-0">
+        <span>{{ sessionId }}</span>
         <span>#{{ contact.DRIVER_ID }}</span>
       </div>
 
       <!-- Name -->
-      <p class="font-medium text-secondary-900 truncate">
+      <p class="text-xs md:text-sm uppercase font-medium text-secondary-700 truncate">
         {{ contact.NAME }}
       </p>
 
       <!-- Last Message -->
       <div
         v-if="lastMessage"
-        class="flex items-center gap-1 text-sm text-secondary-400 ms-4 truncate"
+        class="flex items-center gap-1 text-sm text-secondary-400 ms-2 truncate"
       >
         <component :is="messageIcon" class="h-4 w-4 flex-shrink-0" />
         <span class="truncate">{{ messagePreview }}</span>
       </div>
 
-      <!-- Device Info -->
-      <div
-        v-if="deviceInfo"
-        class="flex items-center gap-4 text-xs text-secondary-500 mt-1 flex-wrap"
-      >
-        <span v-if="deviceInfo.allow_location">
-          Allow: <strong>{{ deviceInfo.allow_location }}</strong>
-        </span>
-        <span v-if="deviceInfo.phone_version">
-          Version: <strong>{{ deviceInfo.phone_version }}</strong>
-        </span>
-        <span v-if="deviceInfo.battery_level" class="flex items-center gap-1">
-          <component :is="batteryIcon" class="h-3.5 w-3.5" :class="batteryIconClass" />
-          <strong>{{ deviceInfo.battery_level }}</strong>
-          <span v-if="deviceInfo.battery_state" class="text-xs">
-            {{ deviceInfo.battery_state }}
+      <div class="mt-3">
+        <!-- Device Info -->
+        <div
+          v-if="deviceInfo"
+          class="flex items-center gap-2 gap-y-0 md:gap-4 text-xs text-secondary-500 flex-wrap"
+        >
+          <span v-if="deviceInfo.allow_location">
+            Allow: <strong>{{ deviceInfo.allow_location }}</strong>
           </span>
-        </span>
-      </div>
+          <span v-if="deviceInfo.phone_version">
+            Version: <strong>{{ deviceInfo.phone_version }}</strong>
+          </span>
+          <span v-if="deviceInfo.battery_level" class="flex items-center gap-x-1">
+            <component :is="batteryIcon" class="h-5 w-5" :class="batteryIconClass" />
+            <strong>{{ deviceInfo.battery_level }}</strong>
+            <span v-if="deviceInfo.battery_state" class="text-xs hidden sm:block">
+              {{ deviceInfo.battery_state }}
+            </span>
+          </span>
+        </div>
 
-      <!-- Driver Info (Terminal Zone, Other Code, Status) -->
-      <div
-        v-if="showDriverInfo"
-        class="flex items-center gap-4 text-xs text-secondary-500 mt-1 flex-wrap"
-      >
-        <span v-if="contact.TERMINAL_ZONE">
-          <strong>T. Zone</strong> {{ contact.TERMINAL_ZONE }}
-        </span>
-        <span v-if="contact.OTHER_CODE"> <strong>O. Code</strong> {{ contact.OTHER_CODE }} </span>
-        <span v-if="contact.STATUS"> <strong>Status</strong> {{ contact.STATUS }} </span>
+        <!-- Driver Info (Terminal Zone, Other Code, Status) -->
+        <div
+          v-if="showDriverInfo"
+          class="flex items-center gap-4 text-xs text-secondary-500 flex-wrap"
+        >
+          <span v-if="contact.TERMINAL_ZONE">
+            <strong>T. Zone</strong> {{ contact.TERMINAL_ZONE }}
+          </span>
+          <span v-if="contact.OTHER_CODE"> <strong>O. Code</strong> {{ contact.OTHER_CODE }} </span>
+          <span v-if="contact.STATUS"> <strong>Status</strong> {{ contact.STATUS }} </span>
+        </div>
       </div>
-    </div>
-
-    <!-- Time/Date -->
-    <div v-if="lastMessage" class="text-xs text-secondary-500 flex-shrink-0 text-right">
-      {{ formatTime(lastMessage.created_at) }}
     </div>
   </div>
 </template>

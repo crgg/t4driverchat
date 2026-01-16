@@ -12,29 +12,37 @@
     <!-- Chat Active -->
     <template v-else>
       <!-- Chat Header -->
-      <div class="bg-white border-b border-secondary-200 px-6 py-4">
+      <div class="bg-white border-b border-secondary-200 px-0 md:px-6 py-3 md:py-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            <!-- Back Button (Mobile Only) -->
+            <button
+              class="md:hidden p-2 hover:bg-secondary-100 rounded-lg transition-colors flex-shrink-0"
+              @click="handleBackToContacts"
+            >
+              <ChevronLeftIcon class="h-6 w-6 text-secondary-600" />
+            </button>
             <Avatar
               :name="currentRoom.contact.NAME"
               :src="currentRoom.contact.picture_name"
               size="md"
               :status="isContactOnline ? 'online' : 'offline'"
               show-status
+              class="flex-shrink-0"
             />
-            <div>
-              <h3 class="font-semibold text-secondary-900">
+            <div class="min-w-0 flex-1">
+              <h3 class="font-semibold text-secondary-900 truncate">
                 {{ currentRoom.contact.NAME }}
               </h3>
-              <p class="text-sm text-secondary-600">
+              <p class="text-xs md:text-sm text-secondary-600 truncate">
                 #{{ currentRoom.contact.DRIVER_ID }}
-                <span v-if="sessionId" class="ml-2">Session: {{ sessionId }}</span>
+                <span v-if="sessionId" class="hidden sm:inline ml-2">Session: {{ sessionId }}</span>
               </p>
             </div>
           </div>
 
           <button
-            class="p-2 hover:bg-secondary-100 rounded-lg transition-colors"
+            class="hidden md:block p-2 hover:bg-secondary-100 rounded-lg transition-colors flex-shrink-0"
             @click="closeChatWindow"
           >
             <XMarkIcon class="h-6 w-6 text-secondary-600" />
@@ -45,7 +53,7 @@
       <!-- Messages Container -->
       <div
         ref="messagesContainer"
-        class="flex-1 overflow-y-auto custom-scrollbar messages-container px-6 py-4"
+        class="flex-1 overflow-y-auto custom-scrollbar messages-container px-3 md:px-6 py-3 md:py-4"
       >
         <!-- Loading Messages -->
         <div v-if="loadingMessages" class="flex items-center justify-center py-8">
@@ -79,8 +87,8 @@
       </div>
 
       <!-- Message Input -->
-      <div class="bg-white border-t border-secondary-200 px-6 py-4">
-        <div class="flex items-end gap-3">
+      <div class="bg-white border-t border-secondary-200 px-3 md:px-6 py-3 md:py-4">
+        <div class="flex items-end gap-2 md:gap-3">
           <!-- File Upload Button -->
           <button
             class="p-2 hover:bg-secondary-100 rounded-lg transition-colors flex-shrink-0"
@@ -175,7 +183,11 @@ import {
   PaperClipIcon,
   PaperAirplaneIcon,
   PencilIcon,
+  ChevronLeftIcon,
 } from '@heroicons/vue/24/outline';
+
+// Emit for mobile navigation
+const emit = defineEmits(['close-chat']);
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
@@ -203,6 +215,7 @@ const isTyping = computed(() =>
 // Watch for room changes
 watch(currentRoom, (newRoom, oldRoom) => {
   if (newRoom?.id !== oldRoom?.id) {
+    if (!newRoom) return;
     // Load draft message
     const draft = chatStore.getDraft(newRoom.id);
     messageText.value = draft;
@@ -226,7 +239,7 @@ watch(
 
 const handleSend = async () => {
   const text = messageText.value.trim();
-  if (!text || sending.value) return;
+  if (!text || sending.value || !currentRoom.value) return;
 
   sending.value = true;
 
@@ -358,7 +371,6 @@ const handleFileSelect = async (event) => {
     uploading.value = false;
     uploadProgress.value = 0;
 
-    // Reset file input
     if (fileInput.value) {
       fileInput.value.value = '';
     }
@@ -367,6 +379,11 @@ const handleFileSelect = async (event) => {
 
 const closeChatWindow = () => {
   chatStore.leaveCurrentRoom();
+  emit('close-chat');
+};
+
+const handleBackToContacts = () => {
+  emit('close-chat');
 };
 
 const isLastOwnMessage = (index) => {

@@ -19,7 +19,7 @@
         <!-- Edit/Delete Actions (only for last own message and text content) -->
         <div
           v-if="isOwn && isLastOwn && !message.sending"
-          class="message-actions absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 flex items-center gap-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
+          class="message-actions hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 items-center gap-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
         >
           <button
             v-if="isTextMessage"
