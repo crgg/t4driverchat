@@ -44,6 +44,15 @@
               {{ activeFiltersCount }}
             </span>
           </button>
+          <button
+            class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
+            :class="{
+              'bg-primary-200 text-primary-700 hover:bg-primary-300': enabledSelectContacts,
+            }"
+            @click="handleEnableSelectContacts"
+          >
+            <RectangleGroupIcon class="h-6 w-6" />
+          </button>
         </div>
       </div>
     </div>
@@ -74,11 +83,17 @@
       >
         <UserGroupIcon class="h-16 w-16 text-secondary-300 mb-4" />
         <p class="text-secondary-600 text-center">
-          {{ searchValue ? 'No results found' : 'Start Chatting' }}
+          {{ hasActiveFilters ? 'No results found' : 'Start Chatting' }}
         </p>
-        <p v-if="searchValue" class="text-secondary-500 text-sm text-center mt-1">
-          Try adjusting your search
-        </p>
+        <div v-if="hasActiveFilters" class="text-secondary-500 text-sm text-center mt-1 space-y-4">
+          <p>Try adjusting your filters</p>
+          <button
+            class="bg-primary-700 text-white text-sm px-4 py-2 rounded-md"
+            @click="handleClearFilters"
+          >
+            Clear Filters
+          </button>
+        </div>
       </div>
 
       <!-- Contacts -->
@@ -86,18 +101,43 @@
         <ContactItem
           v-for="contact in currentContacts"
           :key="contact.DRIVER_ID"
+          :selected="selectedContacts.has(contact.DRIVER_ID)"
+          :show-checkbox="enabledSelectContacts"
           :contact="contact"
-          @click="handleContactClick(contact)"
+          @click="onSelectContactHandler(contact)"
         />
       </div>
+
+      <div
+        v-if="selectedContacts.size > 0 && enabledSelectContacts"
+        class="sticky bottom-0 left-0 right-0 bg-white p-2 border-t border-secondary-200"
+      >
+        <button
+          class="flex items-center justify-center gap-2 bg-primary-700 hover:bg-primary-800 text-white px-4 py-3 rounded-md w-full"
+          @click="sendBulkMessagesHandleClick"
+        >
+          {{ selectedContacts.size }} {{ selectedContacts.size === 1 ? 'Contact' : 'Contacts' }}
+          <PaperAirplaneIcon class="h-5 w-5" style="stroke-width: 2" />
+        </button>
+      </div>
     </div>
+
+    <Modal v-model="showSendBulkMessagesModal" title="Send Bulk Messages" size="xxl">
+      <SenBulkMessageModal />
+    </Modal>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
-import { MagnifyingGlassIcon, FunnelIcon, UserGroupIcon } from '@heroicons/vue/24/outline';
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  UserGroupIcon,
+  RectangleGroupIcon,
+  PaperAirplaneIcon,
+} from '@heroicons/vue/24/outline';
 
 import { useContactsStore } from '@/stores/contacts';
 import { useChatStore } from '@/stores/chat';
@@ -106,6 +146,8 @@ import { debounce } from '@/utils/helpers';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
 import ContactItem from '@/components/chat/ContactItem.vue';
 import FilterModal from '@/components/chat/FilterModal.vue';
+import Modal from '@/components/common/Modal.vue';
+import SenBulkMessageModal from '@/components/chat/SenBulkMessageModal.vue';
 
 const contactsStore = useContactsStore();
 const chatStore = useChatStore();
@@ -122,10 +164,35 @@ const {
   terminalZoneFilters,
   otherCodeFilters,
   activeFiltersCount,
+  hasActiveFilters,
+  selectedContacts,
 } = storeToRefs(contactsStore);
 
 const { username } = storeToRefs(authStore);
 const showFilterModal = ref(false);
+const enabledSelectContacts = ref(false);
+const showSendBulkMessagesModal = ref(false);
+
+const onSelectContactHandler = (contact) => {
+  if (enabledSelectContacts.value) {
+    handleSelectContact(contact);
+  } else {
+    handleContactClick(contact);
+  }
+};
+
+const handleEnableSelectContacts = () => {
+  if (enabledSelectContacts.value) {
+    enabledSelectContacts.value = false;
+    selectedContacts.value.clear();
+  } else {
+    enabledSelectContacts.value = true;
+  }
+};
+
+const sendBulkMessagesHandleClick = () => {
+  showSendBulkMessagesModal.value = true;
+};
 
 // Emit for mobile navigation
 const emit = defineEmits(['contact-selected']);
@@ -140,7 +207,12 @@ const handleSearch = debounce(() => {
   contactsStore.searchContacts(searchValue.value);
 }, 500);
 
+const handleSelectContact = (contact) => {
+  contactsStore.toggleSelectedContact(contact);
+};
+
 const handleContactClick = async (contact) => {
+  console.log('handleContactClick');
   // Get or create session
   let sessionId = chatStore.getSessionDriver(contact.DRIVER_ID);
 

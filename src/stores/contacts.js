@@ -23,6 +23,7 @@ export const useContactsStore = defineStore('contacts', () => {
   const otherCodes = ref(new Set());
   const terminalZoneFilters = ref([]);
   const otherCodeFilters = ref([]);
+  const selectedContacts = ref(new Map());
 
   // Getters
   const hasActiveFilters = computed(() => {
@@ -89,6 +90,7 @@ export const useContactsStore = defineStore('contacts', () => {
   });
 
   // Actions
+
   /**
    * Load drivers list
    * @param {string} search
@@ -367,6 +369,16 @@ export const useContactsStore = defineStore('contacts', () => {
     usersConnected.value = [];
   };
 
+  // Selected Contacts
+  const toggleSelectedContact = (contact) => {
+    const exists = selectedContacts.value.has(contact.DRIVER_ID);
+    if (exists) {
+      selectedContacts.value.delete(contact.DRIVER_ID);
+    } else {
+      selectedContacts.value.set(contact.DRIVER_ID, contact);
+    }
+  };
+
   return {
     // State
     drivers,
@@ -386,6 +398,8 @@ export const useContactsStore = defineStore('contacts', () => {
     currentContacts,
     activeFiltersCount,
     isContactOnline,
+    hasActiveFilters,
+    selectedContacts,
     // Actions
     loadDrivers,
     loadCarriers,
@@ -404,5 +418,7 @@ export const useContactsStore = defineStore('contacts', () => {
     removeLastMessage,
     setContactSession,
     clearContacts,
+    // Selected Contacts
+    toggleSelectedContact,
   };
 });

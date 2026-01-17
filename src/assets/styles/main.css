@@ -24,11 +24,11 @@
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply bg-primary-600 disabled:opacity-80 text-white enabled:hover:bg-primary-700 focus:ring-primary-500;
   }
 
   .btn-secondary {
-    @apply bg-secondary-200 text-secondary-700 hover:bg-secondary-300 focus:ring-secondary-500;
+    @apply bg-secondary-200 disabled:opacity-80 text-secondary-700 enabled:hover:bg-secondary-300 focus:ring-secondary-500;
   }
 
   .btn-outline {

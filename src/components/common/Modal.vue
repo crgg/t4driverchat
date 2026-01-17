@@ -70,7 +70,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl', 'full'].includes(value),
+    validator: (value) => ['sm', 'md', 'lg', 'xl', 'xxl', 'full'].includes(value),
   },
   showHeader: {
     type: Boolean,
@@ -98,6 +98,7 @@ const sizeClass = computed(() => {
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    xxl: 'max-w-6xl',
     full: 'max-w-full mx-4',
   };
   return sizes[props.size];

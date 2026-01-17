@@ -3,15 +3,24 @@
     class="flex items-center relative gap-2 md:gap-3 p-3 md:p-4 hover:bg-secondary-50 active:bg-secondary-100 cursor-pointer transition-colors border-b border-secondary-100"
     :class="{ 'bg-primary-50': isSelected }"
   >
-    <!-- Avatar -->
-    <Avatar
-      :name="contact.NAME"
-      :src="contact.picture_name"
-      size="sm"
-      :status="isOnline ? 'online' : 'offline'"
-      show-status
-      :badge="unreadCount > 0 ? unreadCount : ''"
-    />
+    <div v-if="showCheckbox" class="w-10 flex items-center justify-center">
+      <CheckCircleIcon
+        v-if="selected"
+        class="text-emerald-600 bg-emerald-100 rounded-full w-8 h-8"
+      />
+      <div v-else class="w-[27px] h-[27px] border-[3px] border-gray-400 rounded-full"></div>
+    </div>
+    <template v-else>
+      <!-- Avatar -->
+      <Avatar
+        :name="contact.NAME"
+        :src="contact.picture_name"
+        size="sm"
+        :status="isOnline ? 'online' : 'offline'"
+        show-status
+        :badge="unreadCount > 0 ? unreadCount : ''"
+      />
+    </template>
 
     <div
       v-if="lastMessage"
@@ -83,7 +92,12 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 
-import { PhotoIcon, DocumentIcon, VideoCameraIcon } from '@heroicons/vue/24/outline';
+import {
+  PhotoIcon,
+  DocumentIcon,
+  VideoCameraIcon,
+  CheckCircleIcon,
+} from '@heroicons/vue/24/outline';
 import { Battery100Icon, Battery50Icon, Battery0Icon } from '@heroicons/vue/24/solid';
 import moment from 'moment';
 
@@ -96,6 +110,14 @@ const props = defineProps({
   contact: {
     type: Object,
     required: true,
+  },
+  showCheckbox: {
+    type: Boolean,
+    default: true,
+  },
+  selected: {
+    type: Boolean,
+    default: false,
   },
 });
 
