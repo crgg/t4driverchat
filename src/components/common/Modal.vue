@@ -18,7 +18,7 @@
             <!-- Header -->
             <div
               v-if="showHeader"
-              class="flex items-center justify-between p-6 border-b border-secondary-200"
+              class="flex items-center justify-between px-5 py-4 border-b border-secondary-200"
             >
               <h3 class="text-lg font-semibold text-secondary-900">
                 <slot name="header">{{ title }}</slot>
@@ -33,14 +33,14 @@
             </div>
 
             <!-- Body -->
-            <div class="p-6">
+            <div class="p-5">
               <slot></slot>
             </div>
 
             <!-- Footer -->
             <div
               v-if="showFooter"
-              class="flex items-center justify-end gap-3 p-6 border-t border-secondary-200"
+              class="flex items-center justify-end gap-3 p-5 border-t border-secondary-200"
             >
               <slot name="footer">
                 <button class="btn btn-secondary" @click="close">Cancel</button>

@@ -12,7 +12,7 @@
     <!-- Chat Active -->
     <template v-else>
       <!-- Chat Header -->
-      <div class="bg-white border-b border-secondary-200 px-0 md:px-6 py-3 md:py-4">
+      <div class="bg-white border-b border-secondary-200 pr-2 md:px-6 py-3 md:py-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <!-- Back Button (Mobile Only) -->
@@ -31,7 +31,7 @@
               class="flex-shrink-0"
             />
             <div class="min-w-0 flex-1">
-              <h3 class="font-semibold text-secondary-900 truncate">
+              <h3 class="font-semibold text-secondary-900 truncate text-sm md:text-base">
                 {{ currentRoom.contact.NAME }}
               </h3>
               <p class="text-xs md:text-sm text-secondary-600 truncate">
@@ -41,12 +41,20 @@
             </div>
           </div>
 
-          <button
-            class="hidden md:block p-2 hover:bg-secondary-100 rounded-lg transition-colors flex-shrink-0"
-            @click="closeChatWindow"
-          >
-            <XMarkIcon class="h-6 w-6 text-secondary-600" />
-          </button>
+          <div class="flex gap-2 items-center">
+            <button
+              class="p-2 bg-primary-50 hover:bg-primary-100 rounded-full transition-colors flex-shrink-0"
+              @click="showDriverInformation = true"
+            >
+              <InformationCircleIcon class="h-6 w-6 text-primary-600" />
+            </button>
+            <button
+              class="hidden md:block p-2 hover:bg-secondary-100 rounded-full transition-colors flex-shrink-0"
+              @click="closeChatWindow"
+            >
+              <XMarkIcon class="h-6 w-6 text-secondary-600" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -161,6 +169,9 @@
         </div>
       </div>
     </template>
+    <Modal v-model="showDriverInformation" title="Driver Information" size="xl">
+      <DriverInformationModal />
+    </Modal>
   </div>
 </template>
 
@@ -177,6 +188,10 @@ import config from '@/config';
 import Avatar from '@/components/common/Avatar.vue';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
 import MessageBubble from '@/components/chat/MessageBubble.vue';
+
+import Modal from '@/components/common/Modal.vue';
+import DriverInformationModal from '@/components/chat/DriverInformationModal.vue';
+
 import {
   ChatBubbleLeftRightIcon,
   XMarkIcon,
@@ -184,7 +199,9 @@ import {
   PaperAirplaneIcon,
   PencilIcon,
   ChevronLeftIcon,
+  InformationCircleIcon,
 } from '@heroicons/vue/24/outline';
+import { INITIAL_STATE } from '@/components/chat/constants';
 
 // Emit for mobile navigation
 const emit = defineEmits(['close-chat']);
@@ -197,6 +214,7 @@ const notificationsStore = useNotificationsStore();
 const { currentRoom, currentMessages, loadingMessages } = storeToRefs(chatStore);
 const { isContactOnline } = contactsStore;
 
+const showDriverInformation = ref(INITIAL_STATE.modal.driverInformation);
 const messagesContainer = ref(null);
 const fileInput = ref(null);
 const messageText = ref('');
