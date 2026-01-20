@@ -52,6 +52,7 @@ import { useChatStore } from '@/stores/chat';
 import { useContactsStore } from '@/stores/contacts';
 import { useNotificationsStore } from '@/stores/notifications';
 import socketService from '@/services/socket';
+import SocketAdapter from '@/adapter/socket.adapter';
 import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContactList from '@/components/chat/ContactList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
@@ -257,35 +258,26 @@ const setupSocketListeners = () => {
     }
   });
 
-  // Available rooms response
   socketService.on('request-available-rooms', (rooms = []) => {
-    // Process rooms and map sessions to drivers
     rooms.forEach((room) => {
       const driverId = authStore.user.username === room.user2_id ? room.user1_id : room.user2_id;
-      // Store session for driver
       chatStore.setSessionDriver(driverId, room.id);
-
-      // Update contact's session
       contactsStore.setContactSession(driverId, room.id);
     });
 
-    // Index last messages from rooms
     chatStore.indexLastMessages(rooms);
   });
 
-  // Unread messages count
   socketService.on('number-unread-messages', (rooms) => {
     chatStore.indexUnreadMessages(rooms);
   });
 
   // ===== DEVICE EVENTS =====
 
-  // Device information update (modern format)
   socketService.on('device:update', (info) => {
     chatStore.setDeviceInfo(info.driver_id, info);
   });
 
-  // Device information update (legacy format)
   socketService.on('device-information', (payload) => {
     if (payload.driver_id) {
       chatStore.setDeviceInfo(payload.driver_id, payload);
@@ -294,27 +286,35 @@ const setupSocketListeners = () => {
 
   // ===== CONNECTION EVENTS =====
 
-  // Socket connected
   socketService.on('socket:connected', () => {
-    // Set user information
     emit('setUser', {
       username: authStore.user.username,
       type: 'dispatch',
       token: authStore.token,
     });
 
-    // Request available rooms
     emit('request-available-rooms', {
       username: authStore.user.username,
       typeUser: 'DISPATCH',
     });
 
-    // Request unread messages count
     emit('number-unread-messages', {
       username: authStore.user.username,
     });
 
-    // Load device information (with slight delay to ensure connection is stable)
+    if (
+      chatStore.currentRoom?.id &&
+      chatStore.currentRoom?.user1_id &&
+      chatStore.currentRoom?.user2_id
+    ) {
+      try {
+        const roomPayload = SocketAdapter.roomToEmitJoinEvent(chatStore.currentRoom);
+        socketService.joinRoom(roomPayload);
+      } catch (error) {
+        console.error('Failed to rejoin room on connect:', error);
+      }
+    }
+
     setTimeout(() => {
       chatStore.loadDeviceInformation();
     }, 500);
@@ -322,22 +322,37 @@ const setupSocketListeners = () => {
     notificationsStore.showSuccess('Connected to chat server');
   });
 
-  // Socket disconnected
   socketService.on('socket:disconnected', () => {
     notificationsStore.showWarning('Disconnected from chat server');
   });
 
-  // Socket reconnected
   socketService.on('socket:reconnected', () => {
-    // Re-authenticate and rejoin rooms
     emit('setUser', {
       username: authStore.user.username,
       type: 'dispatch',
       token: authStore.token,
     });
 
-    if (chatStore.currentRoom?.id) {
-      socketService.joinRoom(chatStore.currentRoom.id.toString());
+    emit('request-available-rooms', {
+      username: authStore.user.username,
+      typeUser: 'DISPATCH',
+    });
+
+    emit('number-unread-messages', {
+      username: authStore.user.username,
+    });
+
+    if (
+      chatStore.currentRoom?.id &&
+      chatStore.currentRoom?.user1_id &&
+      chatStore.currentRoom?.user2_id
+    ) {
+      try {
+        const roomPayload = SocketAdapter.roomToEmitJoinEvent(chatStore.currentRoom);
+        socketService.joinRoom(roomPayload);
+      } catch (error) {
+        console.error('Failed to rejoin room on reconnect:', error);
+      }
     }
 
     notificationsStore.showSuccess('Reconnected to chat server');
