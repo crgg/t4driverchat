@@ -5,8 +5,9 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import driversData from '@/fakeData/drivers.json';
+import { chatApi } from '@/services/api';
 import { useChatStore } from './chat';
+import driversData from '@/fakeData/drivers.json';
 
 export const useContactsStore = defineStore('contacts', () => {
   // State

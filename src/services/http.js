@@ -22,7 +22,6 @@ const httpClient = axios.create({
 httpClient.interceptors.request.use(
   (config) => {
     // Add authorization token if available
-    console.log({ config: config });
     const token = storage.get(configApp.storage.token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

@@ -65,13 +65,24 @@
         ref="messagesContainer"
         class="flex-1 overflow-y-auto custom-scrollbar messages-container px-3 md:px-6 py-3 md:py-4"
       >
-        <!-- Loading Messages -->
-        <div v-if="loadingMessages" class="flex items-center justify-center py-8">
+        <!-- Loading Messages (Initial Load) -->
+        <div
+          v-if="loadingMessages && currentMessages.length === 0"
+          class="flex items-center justify-center py-8"
+        >
           <LoadingSpinner size="md" text="Loading messages..." />
         </div>
 
         <!-- Messages -->
         <div v-else class="space-y-2">
+          <!-- Loading More Messages Indicator (Top) -->
+          <div
+            v-if="loadingMessages && currentMessages.length > 0"
+            class="flex items-center justify-center py-4"
+          >
+            <LoadingSpinner size="sm" text="Loading more messages..." />
+          </div>
+
           <MessageBubble
             v-for="(message, index) in currentMessages"
             :key="message.id"
@@ -178,8 +189,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, useTemplateRef } from 'vue';
+import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
+
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import { useContactsStore } from '@/stores/contacts';
@@ -228,6 +240,14 @@ const uploadProgress = ref(0);
 const typingTimeout = ref(null);
 const editingMessage = ref(null);
 
+// Infinite scroll state
+const infiniteScrollLimit = ref(50);
+const infiniteScrollOffset = ref(0);
+const thereMoreMessages = ref(true);
+const endChat = ref(true);
+const newMessage = ref(false);
+const indexDriverLastMessage = ref(-1);
+
 const sessionId = computed(() => currentRoom.value?.id);
 const isTyping = computed(() =>
   chatStore.isUserTyping(currentRoom.value?.id, authStore.user?.username)
@@ -236,29 +256,91 @@ const isTyping = computed(() =>
 watch(messageText, () => adjustTextareaHeight(textareaRef.value));
 
 // Watch for room changes
-watch(currentRoom, (newRoom, oldRoom) => {
+watch(currentRoom, async (newRoom, oldRoom) => {
   if (newRoom?.id !== oldRoom?.id) {
-    if (!newRoom) return;
-    // Load draft message
+    if (!newRoom) {
+      if (messagesContainer.value) {
+        messagesContainer.value.removeEventListener('scroll', handleScroll);
+      }
+      return;
+    }
+
+    resetInfiniteScroll();
+
     const draft = chatStore.getDraft(newRoom.id);
     messageText.value = draft;
 
-    // Scroll to bottom
+    await nextTick();
+
+    if (messagesContainer.value) {
+      messagesContainer.value.addEventListener('scroll', handleScroll);
+    } else {
+      console.warn('messagesContainer not available');
+    }
+
+    await nextTick();
+    nextData(0);
+
     nextTick(() => {
       scrollToBottom(messagesContainer.value);
     });
   }
 });
 
-// Watch for new messages
 watch(
   () => currentMessages.value.length,
   () => {
     nextTick(() => {
-      scrollToBottom(messagesContainer.value);
+      if (endChat.value) {
+        scrollToBottom(messagesContainer.value);
+      }
+      updateDriverLastMessageIndex();
     });
   }
 );
+
+watch(
+  currentMessages,
+  () => {
+    updateDriverLastMessageIndex();
+  },
+  { deep: true }
+);
+
+const messagesLengthBeforeLoad = ref(0);
+const savedScrollHeight = ref(0);
+
+watch(loadingMessages, async (isLoading, wasLoading) => {
+  if (wasLoading && !isLoading) {
+    await nextTick();
+
+    const currentLength = currentMessages.value.length;
+    const messagesAdded = currentLength > messagesLengthBeforeLoad.value;
+
+    if (!messagesAdded && messagesLengthBeforeLoad.value > 0) {
+      thereMoreMessages.value = false;
+    }
+
+    if (savedScrollHeight.value > 0 && messagesContainer.value && messagesAdded) {
+      const oldScrollHeight = savedScrollHeight.value;
+      const newScrollHeight = messagesContainer.value.scrollHeight;
+      const heightDifference = newScrollHeight - oldScrollHeight;
+
+      messagesContainer.value.scrollTop = heightDifference;
+
+      savedScrollHeight.value = 0;
+    } else if (messagesLengthBeforeLoad.value === 0) {
+      scrollToBottom(messagesContainer.value);
+    }
+
+    messagesLengthBeforeLoad.value = 0;
+  } else if (!wasLoading && isLoading) {
+    messagesLengthBeforeLoad.value = currentMessages.value.length;
+    if (messagesContainer.value) {
+      savedScrollHeight.value = messagesContainer.value.scrollHeight;
+    }
+  }
+});
 
 const handleSend = async () => {
   const text = messageText.value.trim();
@@ -284,7 +366,6 @@ const handleSend = async () => {
     messageText.value = '';
     chatStore.clearDraft(currentRoom.value.id);
 
-    // Scroll to bottom
     nextTick(() => {
       scrollToBottom(messagesContainer.value);
     });
@@ -296,12 +377,10 @@ const handleSend = async () => {
 };
 
 const handleTyping = throttle(() => {
-  // Save draft
   if (currentRoom.value?.id) {
     chatStore.saveDraft(currentRoom.value.id, messageText.value);
   }
 
-  // Send typing indicator
   if (messageText.value.trim()) {
     socketService.sendTyping({
       session_id: currentRoom.value.id,
@@ -309,12 +388,10 @@ const handleTyping = throttle(() => {
       from: 'WEB',
     });
 
-    // Clear previous timeout
     if (typingTimeout.value) {
       clearTimeout(typingTimeout.value);
     }
 
-    // Stop typing after 3 seconds
     typingTimeout.value = setTimeout(() => {
       socketService.stopTyping({
         session_id: currentRoom.value.id,
@@ -333,13 +410,11 @@ const handleFileSelect = async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  // Validate file size
   if (file.size > config.chat.maxFileSize) {
     notificationsStore.showError('File size exceeds 10MB limit');
     return;
   }
 
-  // Validate file type
   const isImage = config.chat.allowedImageTypes.includes(file.type);
   const isPdf = config.chat.allowedPdfTypes.includes(file.type);
 
@@ -352,7 +427,6 @@ const handleFileSelect = async (event) => {
   uploadProgress.value = 0;
 
   try {
-    // Get socket server URL from meta tag or config
     const socketServerUrl =
       document.querySelector('meta[name="MIX_URL_CHAT_SERVER"]')?.content || config.socket.url;
     const uploadUrl = `${socketServerUrl}/upload-file`;
@@ -367,7 +441,6 @@ const handleFileSelect = async (event) => {
     formData.append('image', file);
     formData.append('token', authStore.token || '');
 
-    // Upload file using axios
     const axios = (await import('axios')).default;
     await axios.post(uploadUrl, formData, {
       headers: {
@@ -419,7 +492,6 @@ const handleEditMessage = (message) => {
   editingMessage.value = message;
   messageText.value = message.message;
 
-  // Focus textarea
   nextTick(() => {
     const textarea = textareaRef.value;
     if (textarea) {
@@ -505,6 +577,131 @@ const adjustTextareaHeight = (textarea) => {
     textarea.style.height = newHeight + 'px';
   }
 };
+
+// Infinite scroll functions
+const resetInfiniteScroll = () => {
+  infiniteScrollOffset.value = 1;
+  thereMoreMessages.value = true;
+  endChat.value = true;
+  newMessage.value = false;
+  indexDriverLastMessage.value = -1;
+  messagesLengthBeforeLoad.value = 0;
+  savedScrollHeight.value = 0;
+};
+
+const updateDriverLastMessageIndex = () => {
+  indexDriverLastMessage.value = -1;
+  const driverId = currentRoom.value?.contact?.DRIVER_ID;
+  if (!driverId) return;
+
+  for (let i = currentMessages.value.length - 1; i >= 0; i--) {
+    const currMessage = currentMessages.value[i];
+    if (currMessage.user === driverId) {
+      indexDriverLastMessage.value = i;
+      break;
+    }
+  }
+};
+
+const nextData = (offset = infiniteScrollOffset.value) => {
+  if (!thereMoreMessages.value) {
+    console.info('No more messages to load ✔');
+    return;
+  }
+  if (!currentRoom.value?.id) {
+    console.info('No current room');
+    return;
+  }
+  if (loadingMessages.value) {
+    console.info('Already loading messages');
+    return;
+  }
+
+  if (!socketService.isConnected()) {
+    console.error('Socket not connected, cannot load messages');
+    notificationsStore.showError('Connection lost. Please refresh the page.');
+    return;
+  }
+
+  try {
+    infiniteScrollOffset.value = offset + 1;
+
+    chatStore.loadMessages(currentRoom.value.id, offset, infiniteScrollLimit.value);
+  } catch (error) {
+    console.error('Error loading messages:', error);
+    notificationsStore.showError('Failed to load messages');
+    infiniteScrollOffset.value = offset;
+    loadingMessages.value = false;
+  }
+};
+
+const handleScroll = async (event) => {
+  const scrollMessageRef = messagesContainer.value;
+  await nextTick();
+
+  if (loadingMessages.value) return;
+
+  const scrollTop = event.target.scrollTop;
+  const scrollThreshold = 50;
+
+  if (scrollTop <= scrollThreshold && thereMoreMessages.value) {
+    endChat.value = false;
+
+    if (scrollMessageRef) {
+      savedScrollHeight.value = scrollMessageRef.scrollHeight;
+    }
+
+    nextData(infiniteScrollOffset.value);
+  }
+
+  if (scrollMessageRef) {
+    const scrollBottom = scrollMessageRef.scrollHeight - scrollMessageRef.clientHeight;
+    if (scrollTop >= scrollBottom - 10) {
+      if (indexDriverLastMessage.value !== -1) {
+        const isLastMessageDriverMarkAsRead = !!(
+          currentMessages.value[indexDriverLastMessage.value] &&
+          currentMessages.value[indexDriverLastMessage.value].read_at
+        );
+        if (!isLastMessageDriverMarkAsRead) {
+          socketService.readMessage({
+            sessionId: currentRoom.value.id,
+            username: authStore.user?.username || authStore.username,
+          });
+        }
+      }
+      endChat.value = true;
+      newMessage.value = false;
+    }
+  }
+};
+
+const handleHistoryMessages = (historyMessages = []) => {
+  const filteredMessages = historyMessages.filter(
+    (msg) => msg.session_id === currentRoom.value?.id
+  );
+
+  if (filteredMessages.length === 0 && currentRoom.value?.id) {
+    thereMoreMessages.value = false;
+  }
+};
+
+onMounted(() => {
+  socketService.on('history-messages', handleHistoryMessages);
+
+  nextTick(() => {
+    if (messagesContainer.value && currentRoom.value) {
+      messagesContainer.value.addEventListener('scroll', handleScroll);
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (messagesContainer.value) {
+    messagesContainer.value.removeEventListener('scroll', handleScroll);
+  }
+
+  socketService.off('history-messages', handleHistoryMessages);
+});
 </script>
 
 <style scoped>
