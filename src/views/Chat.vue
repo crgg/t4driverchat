@@ -1,31 +1,44 @@
 <template>
-  <div class="h-screen flex flex-col bg-secondary-50">
-    <!-- Header -->
-    <ChatHeader />
+  <div class="h-screen flex bg-[#f4f6f9]">
+    <div class="bg-[#353a3f] w-20">
+      <div class="flex items-center justify-center p-1 rounded-full mt-4 text-center w-full">
+        <div class="bg-white p-1 rounded-full">
+          <img
+            src="/images/logonewsmall.png"
+            alt="App Logo"
+            class="w-8 h-8 object-contain mx-auto"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col flex-1">
+      <!-- Header -->
+      <ChatHeader />
 
-    <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden relative">
-      <!-- Contacts Sidebar -->
-      <ContactList
-        :class="[
-          'transition-transform duration-300 ease-in-out',
-          'absolute md:relative inset-y-0 left-0 z-20 w-full',
-          'md:w-80 lg:w-96 xl:w-[32rem]',
-          showMobileChat ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
-        ]"
-        @contact-selected="handleContactSelected"
-      />
+      <!-- Main Content -->
+      <div class="flex-1 flex overflow-hidden relative p-5">
+        <!-- Contacts Sidebar -->
+        <ContactList
+          :class="[
+            'transition-transform duration-300 ease-in-out',
+            'absolute md:relative inset-y-0 left-0 z-20 w-full',
+            'md:w-80 lg:w-96 xl:w-[32rem]',
+            showMobileChat ? '-translate-x-full md:translate-x-0' : 'translate-x-0',
+          ]"
+          @contact-selected="handleContactSelected"
+        />
 
-      <!-- Chat Window -->
-      <ChatWindow
-        :class="[
-          'transition-transform duration-300 ease-in-out',
-          'absolute md:relative inset-0 z-10',
-          'md:flex-1',
-          showMobileChat ? 'translate-x-0' : 'translate-x-full md:translate-x-0',
-        ]"
-        @close-chat="handleCloseChat"
-      />
+        <!-- Chat Window -->
+        <ChatWindow
+          :class="[
+            'transition-transform duration-300 ease-in-out',
+            'absolute md:relative inset-0 z-10',
+            'md:flex-1',
+            showMobileChat ? 'translate-x-0' : 'translate-x-full md:translate-x-0',
+          ]"
+          @close-chat="handleCloseChat"
+        />
+      </div>
     </div>
   </div>
 </template>

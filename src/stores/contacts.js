@@ -370,10 +370,13 @@ export const useContactsStore = defineStore('contacts', () => {
   };
 
   // Selected Contacts
-  const toggleSelectedContact = (contact) => {
+  const toggleSelectedContact = (contact, callback) => {
     const exists = selectedContacts.value.has(contact.DRIVER_ID);
     if (exists) {
       selectedContacts.value.delete(contact.DRIVER_ID);
+      if (selectedContacts.value.size === 0) {
+        callback?.();
+      }
     } else {
       selectedContacts.value.set(contact.DRIVER_ID, contact);
     }

@@ -1,23 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: '#e6f0ff',
+          100: '#cce0ff',
+          200: '#99c2ff',
+          300: '#66a3ff',
+          400: '#3385ff',
+          500: '#007bff', // main brand color
+          600: '#006ae6',
+          700: '#005acc',
+          800: '#004bb3',
+          900: '#003366',
         },
         secondary: {
           50: '#f8fafc',
@@ -30,7 +27,7 @@ export default {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-        }
+        },
       },
       animation: {
         'slide-in-right': 'slideInRight 0.3s ease-out',
@@ -61,4 +58,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

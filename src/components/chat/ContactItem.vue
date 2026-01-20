@@ -18,7 +18,6 @@
         size="sm"
         :status="isOnline ? 'online' : 'offline'"
         show-status
-        :badge="unreadCount > 0 ? unreadCount : ''"
       />
     </template>
 
@@ -29,10 +28,17 @@
       {{ formatTime(lastMessage.created_at) }}
     </div>
 
+    <span
+      v-if="unreadCount > 0"
+      class="absolute bottom-3.5 right-3.5 w-6 h-6 flex items-center justify-center badge badge-danger text-xs font-bold"
+    >
+      {{ unreadCount > 9 ? '+9' : unreadCount }}
+    </span>
+
     <!-- Contact Info -->
     <div class="flex-1 min-w-0">
       <!-- Driver ID and Session -->
-      <div class="flex items-center gap-1 text-[11px] text-primary-700 mb-0">
+      <div class="flex items-center gap-1 text-[11px] text-primary-500 mb-0">
         <span>{{ sessionId }}</span>
         <span>#{{ contact.DRIVER_ID }}</span>
       </div>

@@ -1,18 +1,20 @@
 <template>
-  <div class="bg-white border-r border-secondary-200 flex flex-col h-full">
+  <div
+    class="bg-white border-r-0 border-secondary-200 flex flex-col h-full sm:rounded-s-3xl border"
+  >
     <!-- Search and Filters -->
     <div class="p-4 border-b border-secondary-200">
       <!-- Type Selector -->
-      <select
+      <!-- <select
         v-model="filterBy"
         class="w-full mb-3 px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         @change="handleFilterChange"
       >
         <option value="driver">Type Drivers</option>
         <option value="carrier">Type Carriers</option>
-      </select>
+      </select> -->
 
-      <div class="flex items-center gap-1 mb-2">
+      <div class="flex items-center gap-1">
         <!-- Search Input -->
         <div class="relative flex-1">
           <MagnifyingGlassIcon
@@ -45,9 +47,10 @@
             </span>
           </button>
           <button
-            class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
+            class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
             :class="{
-              'bg-primary-200 text-primary-700 hover:bg-primary-300': enabledSelectContacts,
+              'bg-primary-700 text-white hover:bg-primary-600': enabledSelectContacts,
+              'bg-secondary-100 hover:bg-secondary-200': !enabledSelectContacts,
             }"
             @click="handleEnableSelectContacts"
           >
@@ -122,8 +125,13 @@
       </div>
     </div>
 
-    <Modal v-model="showSendBulkMessagesModal" title="Send Bulk Messages" size="xxl">
-      <SenBulkMessageModal />
+    <Modal
+      v-model="showSendBulkMessagesModal"
+      :close-on-backdrop="false"
+      title="Send Bulk Messages"
+      size="xxl"
+    >
+      <SenBulkMessageModal @close="showSendBulkMessagesModal = false" />
     </Modal>
   </div>
 </template>
@@ -157,7 +165,6 @@ const authStore = useAuthStore();
 const {
   currentContacts,
   loading,
-  filterBy,
   searchValue,
   terminalZones,
   otherCodes,
@@ -197,12 +204,6 @@ const sendBulkMessagesHandleClick = () => {
 // Emit for mobile navigation
 const emit = defineEmits(['contact-selected']);
 
-const handleFilterChange = () => {
-  if (filterBy.value === 'carrier') {
-    contactsStore.loadCarriers(searchValue.value);
-  }
-};
-
 const handleSearch = debounce(() => {
   contactsStore.searchContacts(searchValue.value);
 }, 500);
@@ -212,7 +213,6 @@ const handleSelectContact = (contact) => {
 };
 
 const handleContactClick = async (contact) => {
-  console.log('handleContactClick');
   // Get or create session
   let sessionId = chatStore.getSessionDriver(contact.DRIVER_ID);
 

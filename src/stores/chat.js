@@ -143,6 +143,15 @@ export const useChatStore = defineStore('chat', () => {
     }
   };
 
+  const sendBulkChat = async (data) => {
+    try {
+      socketService.sendBulkChat(data);
+    } catch (error) {
+      console.error('Failed to send bulk chat:', error);
+      return { success: false, error };
+    }
+  };
+
   /**
    * Receive a new message
    * @param {Object} message
@@ -531,5 +540,6 @@ export const useChatStore = defineStore('chat', () => {
     clearChatData,
     openedChatWeb,
     setSyncSession,
+    sendBulkChat,
   };
 });

@@ -5,7 +5,28 @@
     :class="isOwn ? 'justify-end' : 'justify-start'"
   >
     <!-- Message Content -->
-    <div class="flex flex-col max-w-[75%] sm:max-w-md lg:max-w-lg">
+    <div class="flex gap-2 max-w-[75%] sm:max-w-md lg:max-w-lg">
+      <!-- Edit/Delete Actions (only for last own message and text content) -->
+      <div
+        v-if="isOwn && isLastOwn && !message.sending"
+        class="message-actions flex items-center gap-1 sm:gap-2 transition-opacity duration-200"
+      >
+        <button
+          v-if="isTextMessage"
+          class="p-1.5 rounded-full bg-white shadow-md hover:bg-primary-50 transition-colors duration-200"
+          title="Edit message"
+          @click="emit('edit', message)"
+        >
+          <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
+        </button>
+        <button
+          class="p-1.5 rounded-full bg-white shadow-md hover:bg-red-50 transition-colors duration-200"
+          title="Delete message"
+          @click="emit('delete', message)"
+        >
+          <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
+        </button>
+      </div>
       <!-- Message Bubble -->
       <div
         class="message-bubble relative group/bubble"
@@ -16,27 +37,6 @@
           isEditing ? 'bubble-editing' : '',
         ]"
       >
-        <!-- Edit/Delete Actions (only for last own message and text content) -->
-        <div
-          v-if="isOwn && isLastOwn && !message.sending"
-          class="message-actions hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 items-center gap-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200"
-        >
-          <button
-            v-if="isTextMessage"
-            class="p-1.5 rounded-full bg-white dark:bg-secondary-800 shadow-md hover:bg-primary-50 dark:hover:bg-primary-900 transition-colors duration-200"
-            title="Edit message"
-            @click="emit('edit', message)"
-          >
-            <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
-          </button>
-          <button
-            class="p-1.5 rounded-full bg-white dark:bg-secondary-800 shadow-md hover:bg-red-50 dark:hover:bg-red-900 transition-colors duration-200"
-            title="Delete message"
-            @click="emit('delete', message)"
-          >
-            <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
-          </button>
-        </div>
         <!-- Text Message -->
         <div v-if="isTextMessage" class="message-text">
           <p class="whitespace-pre-wrap break-words leading-relaxed">
@@ -119,41 +119,40 @@
             <span class="text-xs font-medium">Sending...</span>
           </div>
         </div>
-      </div>
+        <!-- Message Footer -->
+        <div
+          class="flex items-center gap-2 px-4 pb-2"
+          :class="isOwn ? 'justify-end' : 'justify-start'"
+        >
+          <!-- Time -->
+          <span class="text-xs text-secondary-500 font-medium">
+            {{ formatTime(message.created_at) }}
+          </span>
 
-      <!-- Message Footer -->
-      <div
-        class="flex items-center gap-2 mt-1 px-1"
-        :class="isOwn ? 'justify-end' : 'justify-start'"
-      >
-        <!-- Time -->
-        <span class="text-xs text-secondary-500 font-medium">
-          {{ formatTime(message.created_at) }}
-        </span>
+          <!-- Status indicators for own messages -->
+          <div v-if="isOwn" class="flex items-center gap-1">
+            <!-- Sending -->
+            <div v-if="message.sending" class="flex items-center gap-1 text-secondary-400">
+              <ArrowPathIcon class="h-3.5 w-3.5 animate-spin" />
+              <span class="text-xs">Sending</span>
+            </div>
 
-        <!-- Status indicators for own messages -->
-        <div v-if="isOwn" class="flex items-center gap-1">
-          <!-- Sending -->
-          <div v-if="message.sending" class="flex items-center gap-1 text-secondary-400">
-            <ArrowPathIcon class="h-3.5 w-3.5 animate-spin" />
-            <span class="text-xs">Sending</span>
-          </div>
+            <!-- Error -->
+            <div v-else-if="message.error" class="flex items-center gap-1 text-red-500">
+              <ExclamationCircleIcon class="h-3.5 w-3.5" />
+              <span class="text-xs">Failed</span>
+            </div>
 
-          <!-- Error -->
-          <div v-else-if="message.error" class="flex items-center gap-1 text-red-500">
-            <ExclamationCircleIcon class="h-3.5 w-3.5" />
-            <span class="text-xs">Failed</span>
-          </div>
+            <!-- Read (double check) -->
+            <div v-else-if="message.read_at" class="flex items-center text-blue-600">
+              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5 -mr-1.5" />
+              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
+            </div>
 
-          <!-- Read (double check) -->
-          <div v-else-if="message.read_at" class="flex items-center text-primary-600">
-            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5 -mr-1.5" />
-            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
-          </div>
-
-          <!-- Delivered (single check) -->
-          <div v-else class="flex items-center text-secondary-400">
-            <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
+            <!-- Delivered (single check) -->
+            <div v-else class="flex items-center text-secondary-400">
+              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
+            </div>
           </div>
         </div>
       </div>

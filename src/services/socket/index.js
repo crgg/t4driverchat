@@ -296,6 +296,14 @@ class SocketService {
   }
 
   /**
+   * Send bulk chat messages
+   * @param {Object} data - { dispatchId, newMessages }
+   */
+  sendBulkChat(data) {
+    this.send('bulk-chat', data);
+  }
+
+  /**
    * Check if socket is connected
    * @returns {boolean}
    */

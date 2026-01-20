@@ -133,7 +133,8 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const logout = async () => {
     try {
-      await authApi.logout();
+      // await authApi.logout();
+      console.log('Logout');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {

@@ -1,5 +1,7 @@
 <template>
-  <div class="flex-1 flex flex-col bg-chat">
+  <div
+    class="flex-1 flex flex-col bg-chat border border-l-0 border-secondary-200 sm:rounded-e-3xl overflow-hidden"
+  >
     <!-- No Chat Selected -->
     <div v-if="!currentRoom" class="flex-1 flex items-center justify-center">
       <div class="text-center">
@@ -114,7 +116,7 @@
           />
 
           <!-- Message Input -->
-          <div class="flex-1">
+          <div class="flex-1 flex flex-col justify-end">
             <div
               v-if="editingMessage"
               class="mb-2 flex items-center gap-2 text-sm text-secondary-600"
@@ -123,13 +125,13 @@
               <button class="text-red-500 hover:text-red-700" @click="cancelEdit">Cancel</button>
             </div>
             <textarea
+              ref="textareaRef"
               v-model="messageText"
               rows="1"
               class="w-full px-4 py-2 border border-secondary-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent custom-scrollbar"
               :placeholder="editingMessage ? 'Edit your message...' : 'Type your message...'"
               :disabled="sending"
               @keydown.enter.exact.prevent="editingMessage ? handleUpdateMessage() : handleSend()"
-              @keydown.shift.enter.exact="handleNewLine"
               @keydown.esc="cancelEdit"
               @input="handleTyping"
             ></textarea>
@@ -138,7 +140,7 @@
           <!-- Send/Update Button -->
           <button
             v-if="!editingMessage"
-            class="btn btn-primary px-6 flex-shrink-0"
+            class="btn btn-primary w-12 p-0 h-12 flex-shrink-0 rounded-full flex items-center justify-center"
             :disabled="!messageText.trim() || sending"
             @click="handleSend"
           >
@@ -146,7 +148,7 @@
           </button>
           <button
             v-else
-            class="btn btn-warning px-6 flex-shrink-0"
+            class="btn btn-primary w-12 p-0 h-12 flex-shrink-0 rounded-full flex items-center justify-center"
             :disabled="!messageText.trim() || sending"
             @click="handleUpdateMessage"
           >
@@ -176,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, useTemplateRef } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
@@ -216,6 +218,7 @@ const { isContactOnline } = contactsStore;
 
 const showDriverInformation = ref(INITIAL_STATE.modal.driverInformation);
 const messagesContainer = ref(null);
+const textareaRef = useTemplateRef('textareaRef');
 const fileInput = ref(null);
 const messageText = ref('');
 const sending = ref(false);
@@ -229,6 +232,8 @@ const sessionId = computed(() => currentRoom.value?.id);
 const isTyping = computed(() =>
   chatStore.isUserTyping(currentRoom.value?.id, authStore.user?.username)
 );
+
+watch(messageText, () => adjustTextareaHeight(textareaRef.value));
 
 // Watch for room changes
 watch(currentRoom, (newRoom, oldRoom) => {
@@ -288,10 +293,6 @@ const handleSend = async () => {
   } finally {
     sending.value = false;
   }
-};
-
-const handleNewLine = () => {
-  messageText.value += '\n';
 };
 
 const handleTyping = throttle(() => {
@@ -420,10 +421,11 @@ const handleEditMessage = (message) => {
 
   // Focus textarea
   nextTick(() => {
-    const textarea = document.querySelector('textarea');
+    const textarea = textareaRef.value;
     if (textarea) {
       textarea.focus();
       textarea.setSelectionRange(messageText.value.length, messageText.value.length);
+      adjustTextareaHeight(textarea);
     }
   });
 };
@@ -455,6 +457,9 @@ const handleUpdateMessage = async () => {
 const cancelEdit = () => {
   editingMessage.value = null;
   messageText.value = '';
+  nextTick(() => {
+    adjustTextareaHeight(textareaRef.value);
+  });
 };
 
 const handleDeleteMessage = async (message) => {
@@ -483,6 +488,21 @@ const handleDeleteMessage = async (message) => {
     notificationsStore.showSuccess('Message deleted');
   } catch (error) {
     notificationsStore.showError('Failed to delete message');
+  }
+};
+
+const adjustTextareaHeight = (textarea) => {
+  if (!textarea) return;
+  textarea.style.height = INITIAL_STATE.textarea.minHeight + 'px';
+
+  const scrollHeight = textarea.scrollHeight;
+  const maxHeight = parseInt(getComputedStyle(textarea).maxHeight);
+  const newHeight = Math.min(scrollHeight, maxHeight);
+
+  if (newHeight <= INITIAL_STATE.textarea.minHeight) {
+    textarea.style.height = INITIAL_STATE.textarea.minHeight + 'px';
+  } else {
+    textarea.style.height = newHeight + 'px';
   }
 };
 </script>
@@ -524,6 +544,6 @@ const handleDeleteMessage = async (message) => {
 }
 
 textarea {
-  max-height: 120px;
+  max-height: 300px;
 }
 </style>
