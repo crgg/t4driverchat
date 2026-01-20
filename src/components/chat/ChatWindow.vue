@@ -123,6 +123,7 @@
             type="file"
             class="hidden"
             accept="image/*,.pdf"
+            multiple
             @change="handleFileSelect"
           />
 
@@ -135,24 +136,77 @@
               <span class="font-medium">Editing message</span>
               <button class="text-red-500 hover:text-red-700" @click="cancelEdit">Cancel</button>
             </div>
-            <textarea
-              ref="textareaRef"
-              v-model="messageText"
-              rows="1"
-              class="w-full px-4 py-2 border border-secondary-300 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent custom-scrollbar"
-              :placeholder="editingMessage ? 'Edit your message...' : 'Type your message...'"
-              :disabled="sending"
-              @keydown.enter.exact.prevent="editingMessage ? handleUpdateMessage() : handleSend()"
-              @keydown.esc="cancelEdit"
-              @input="handleTyping"
-            ></textarea>
+            <div
+              :class="[
+                'w-full px-4 py-2 border border-secondary-300 rounded-lg',
+                thumbnailsFiles.length > 0 ? 'rounded-b-none border-b-0' : '',
+              ]"
+            >
+              <textarea
+                ref="textareaRef"
+                v-model="messageText"
+                rows="1"
+                class="w-full resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent custom-scrollbar bg-transparent outline-none"
+                :placeholder="editingMessage ? 'Edit your message...' : 'Type your message...'"
+                :disabled="sending"
+                @keydown.enter.exact.prevent="editingMessage ? handleUpdateMessage() : handleSend()"
+                @keydown.esc="cancelEdit"
+                @input="handleTyping"
+              ></textarea>
+            </div>
+
+            <!-- File Preview -->
+            <div
+              v-if="thumbnailsFiles.length > 0"
+              class="w-full bg-white border border-secondary-300 border-t-0 rounded-b-lg p-2"
+            >
+              <div class="flex gap-2 flex-wrap">
+                <div
+                  v-for="thumbnail in thumbnailsFiles"
+                  :key="thumbnail.id"
+                  class="relative group"
+                >
+                  <div
+                    class="w-24 h-24 rounded-lg border border-secondary-200 bg-secondary-50 relative"
+                  >
+                    <button
+                      type="button"
+                      class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      @click="removeThumbnail(thumbnail)"
+                    >
+                      <XMarkIcon class="h-4 w-4" />
+                    </button>
+                    <img
+                      v-if="thumbnail.type !== 'application/pdf'"
+                      :src="thumbnail.src"
+                      :alt="thumbnail.name"
+                      class="w-full h-full object-cover cursor-pointer rounded-lg"
+                      @click="previewImage(thumbnail.src, thumbnail.name)"
+                    />
+                    <PdfThumbnail
+                      v-else
+                      :pdf-url="thumbnail.src"
+                      :filename="thumbnail.name"
+                      :thumbnail-size="96"
+                      class="w-full h-full"
+                      @click="previewPdf(thumbnail.src, thumbnail.name)"
+                    />
+                  </div>
+                  <p class="text-xs text-secondary-600 mt-1 truncate w-24" :title="thumbnail.name">
+                    {{ thumbnail.name }}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Send/Update Button -->
           <button
             v-if="!editingMessage"
             class="btn btn-primary w-12 p-0 h-12 flex-shrink-0 rounded-full flex items-center justify-center"
-            :disabled="!messageText.trim() || sending"
+            :disabled="
+              (!messageText.trim() && thumbnailsFiles.length === 0) || sending || uploading
+            "
             @click="handleSend"
           >
             <PaperAirplaneIcon class="h-5 w-5" />
@@ -185,27 +239,27 @@
     <Modal v-model="showDriverInformation" title="Driver Information" size="xl">
       <DriverInformationModal />
     </Modal>
+
+    <!-- Image Preview Modal -->
+    <ImagePreview
+      v-model="showImagePreview"
+      :image-url="previewImageUrl"
+      :filename="previewFilename"
+    />
+
+    <!-- PDF Preview Modal -->
+    <PdfPreview
+      v-model="showPdfPreview"
+      :pdf-url="previewPdfUrl"
+      :filename="previewFilename"
+      :is-base64="true"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
-
-import { useAuthStore } from '@/stores/auth';
-import { useChatStore } from '@/stores/chat';
-import { useContactsStore } from '@/stores/contacts';
-import { useNotificationsStore } from '@/stores/notifications';
-import socketService from '@/services/socket';
-import { scrollToBottom, throttle } from '@/utils/helpers';
-import config from '@/config';
-import Avatar from '@/components/common/Avatar.vue';
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
-import MessageBubble from '@/components/chat/MessageBubble.vue';
-
-import Modal from '@/components/common/Modal.vue';
-import DriverInformationModal from '@/components/chat/DriverInformationModal.vue';
-
 import {
   ChatBubbleLeftRightIcon,
   XMarkIcon,
@@ -215,9 +269,25 @@ import {
   ChevronLeftIcon,
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline';
-import { INITIAL_STATE } from '@/components/chat/constants';
 
-// Emit for mobile navigation
+import DriverInformationModal from '@/components/chat/DriverInformationModal.vue';
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
+import MessageBubble from '@/components/chat/MessageBubble.vue';
+import PdfThumbnail from '@/components/common/PdfThumbnail.vue';
+import Avatar from '@/components/common/Avatar.vue';
+import Modal from '@/components/common/Modal.vue';
+import ImagePreview from '@/components/common/ImagePreview.vue';
+import PdfPreview from '@/components/common/PdfPreview.vue';
+
+import { useNotificationsStore } from '@/stores/notifications';
+import { INITIAL_STATE } from '@/components/chat/constants';
+import { scrollToBottom, throttle } from '@/utils/helpers';
+import { useContactsStore } from '@/stores/contacts';
+import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/chat';
+import socketService from '@/services/socket';
+import config from '@/config';
+
 const emit = defineEmits(['close-chat']);
 
 const authStore = useAuthStore();
@@ -236,11 +306,20 @@ const messageText = ref('');
 const sending = ref(false);
 const uploading = ref(false);
 const uploadProgress = ref(0);
-// const isTyping = ref(false);
 const typingTimeout = ref(null);
 const editingMessage = ref(null);
 
-// Infinite scroll state
+const thumbnailsFiles = ref([]);
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// Preview modal state
+const showImagePreview = ref(false);
+const showPdfPreview = ref(false);
+const previewImageUrl = ref('');
+const previewPdfUrl = ref('');
+const previewFilename = ref('');
+
 const infiniteScrollLimit = ref(50);
 const infiniteScrollOffset = ref(0);
 const thereMoreMessages = ref(true);
@@ -255,13 +334,13 @@ const isTyping = computed(() =>
 
 watch(messageText, () => adjustTextareaHeight(textareaRef.value));
 
-// Watch for room changes
 watch(currentRoom, async (newRoom, oldRoom) => {
   if (newRoom?.id !== oldRoom?.id) {
     if (!newRoom) {
       if (messagesContainer.value) {
         messagesContainer.value.removeEventListener('scroll', handleScroll);
       }
+      thumbnailsFiles.value = [];
       return;
     }
 
@@ -269,6 +348,8 @@ watch(currentRoom, async (newRoom, oldRoom) => {
 
     const draft = chatStore.getDraft(newRoom.id);
     messageText.value = draft;
+
+    thumbnailsFiles.value = [];
 
     await nextTick();
 
@@ -344,24 +425,34 @@ watch(loadingMessages, async (isLoading, wasLoading) => {
 
 const handleSend = async () => {
   const text = messageText.value.trim();
-  if (!text || sending.value || !currentRoom.value) return;
+  const hasFiles = thumbnailsFiles.value.length > 0;
+
+  if ((!text && !hasFiles) || sending.value || uploading.value || !currentRoom.value) return;
 
   sending.value = true;
 
   try {
-    const newMessagePayload = {
-      session_id: currentRoom.value.id,
-      type: 1,
-      message: text,
-      where: 'web',
-      driver: currentRoom.value.contact.DRIVER_ID,
-      user: authStore.user?.username || authStore.username,
-      trip: currentRoom.value.contact.CURRENT_TRIP || '',
-      content: 'text',
-      uuid: crypto.randomUUID(),
-    };
+    // Send text message if there is one
+    if (text) {
+      const newMessagePayload = {
+        session_id: currentRoom.value.id,
+        type: 1,
+        message: text,
+        where: 'web',
+        driver: currentRoom.value.contact.DRIVER_ID,
+        user: authStore.user?.username || authStore.username,
+        trip: currentRoom.value.contact.CURRENT_TRIP || '',
+        content: 'text',
+        uuid: crypto.randomUUID(),
+      };
 
-    await chatStore.sendMessage(newMessagePayload);
+      await chatStore.sendMessage(newMessagePayload);
+    }
+
+    // Upload files if there are any
+    if (hasFiles) {
+      await uploadFiles();
+    }
 
     messageText.value = '';
     chatStore.clearDraft(currentRoom.value.id);
@@ -406,22 +497,99 @@ const handleFileClick = () => {
   fileInput.value?.click();
 };
 
+const generateUniqueId = () => {
+  return `thumbnail-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 const handleFileSelect = async (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
 
-  if (file.size > config.chat.maxFileSize) {
-    notificationsStore.showError('File size exceeds 10MB limit');
+  // Check if adding these files would exceed the limit
+  const totalFiles = thumbnailsFiles.value.length + files.length;
+  if (totalFiles > MAX_FILES) {
+    notificationsStore.showError(`You can only upload a maximum of ${MAX_FILES} files.`);
+    if (fileInput.value) {
+      fileInput.value.value = '';
+    }
     return;
   }
 
-  const isImage = config.chat.allowedImageTypes.includes(file.type);
-  const isPdf = config.chat.allowedPdfTypes.includes(file.type);
+  // Process each file
+  const promises = files.map((file) => {
+    return new Promise((resolve) => {
+      // Validate file size (10MB per file)
+      if (file.size > MAX_FILE_SIZE) {
+        notificationsStore.showError(`File "${file.name}" exceeds 10MB limit`);
+        resolve(null);
+        return;
+      }
 
-  if (!isImage && !isPdf) {
-    notificationsStore.showError('Only images and PDFs are allowed');
-    return;
+      // Validate file type
+      const isImage = config.chat.allowedImageTypes.includes(file.type);
+      const isPdf = config.chat.allowedPdfTypes.includes(file.type);
+
+      if (!isImage && !isPdf) {
+        notificationsStore.showError(`File "${file.name}" is not a valid image or PDF`);
+        resolve(null);
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const thumbnailData = {
+          id: generateUniqueId(),
+          name: file.name,
+          type: file.type,
+          src: reader.result,
+          file: file,
+        };
+
+        // Only add if we haven't exceeded the limit
+        if (thumbnailsFiles.value.length < MAX_FILES) {
+          thumbnailsFiles.value.push(thumbnailData);
+          resolve(thumbnailData);
+        } else {
+          notificationsStore.showError(`You can only upload a maximum of ${MAX_FILES} files.`);
+          resolve(null);
+        }
+      };
+      reader.onerror = () => {
+        notificationsStore.showError(`Failed to read file "${file.name}"`);
+        resolve(null);
+      };
+    });
+  });
+
+  await Promise.allSettled(promises);
+
+  // Clear input
+  if (fileInput.value) {
+    fileInput.value.value = '';
   }
+};
+
+const removeThumbnail = (thumbnail) => {
+  thumbnailsFiles.value = thumbnailsFiles.value.filter((f) => f.id !== thumbnail.id);
+};
+
+const previewImage = (src, filename = '') => {
+  previewImageUrl.value = src;
+  previewFilename.value = filename;
+  showImagePreview.value = true;
+};
+
+const previewPdf = (src, filename = '') => {
+  previewPdfUrl.value = src;
+  previewFilename.value = filename;
+  showPdfPreview.value = true;
+};
+
+const uploadFiles = async () => {
+  const files = thumbnailsFiles.value.map((thumb) => thumb.file);
+  if (!files.length) return;
 
   uploading.value = true;
   uploadProgress.value = 0;
@@ -431,41 +599,47 @@ const handleFileSelect = async (event) => {
       document.querySelector('meta[name="MIX_URL_CHAT_SERVER"]')?.content || config.socket.url;
     const uploadUrl = `${socketServerUrl}/upload-file`;
 
-    const formData = new FormData();
-    formData.append('content', isImage ? 'image' : 'pdf');
-    formData.append('driver', currentRoom.value.contact.DRIVER_ID);
-    formData.append('session_id', currentRoom.value.id);
-    formData.append('where', 'WEB');
-    formData.append('user', authStore.user.username);
-    formData.append('trip', currentRoom.value.contact.CURRENT_TRIP || '');
-    formData.append('image', file);
-    formData.append('token', authStore.token || '');
+    // Upload each file
+    for (const file of files) {
+      const isImage = config.chat.allowedImageTypes.includes(file.type);
+      const isPdf = config.chat.allowedPdfTypes.includes(file.type);
+      const content = isImage ? 'image' : 'pdf';
 
-    const axios = (await import('axios')).default;
-    await axios.post(uploadUrl, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: (progressEvent) => {
-        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-      },
-    });
+      const formData = new FormData();
+      formData.append('content', content);
+      formData.append('driver', currentRoom.value.contact.DRIVER_ID);
+      formData.append('session_id', currentRoom.value.id);
+      formData.append('where', 'WEB');
+      formData.append('user', authStore.user.username);
+      formData.append('trip', currentRoom.value.contact.CURRENT_TRIP || '');
+      formData.append('image', file);
+      formData.append('token', authStore.token || '');
 
-    notificationsStore.showSuccess('File uploaded successfully');
+      const axios = (await import('axios')).default;
+      await axios.post(uploadUrl, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        },
+      });
+    }
+
+    notificationsStore.showSuccess('Files uploaded successfully');
+
+    // Clear thumbnails after successful upload
+    thumbnailsFiles.value = [];
   } catch (error) {
     console.error('Upload error:', error);
     if (error.response?.status === 413) {
       notificationsStore.showError('File too large');
     } else {
-      notificationsStore.showError('Failed to upload file');
+      notificationsStore.showError('Failed to upload files');
     }
   } finally {
     uploading.value = false;
     uploadProgress.value = 0;
-
-    if (fileInput.value) {
-      fileInput.value.value = '';
-    }
   }
 };
 
@@ -529,6 +703,7 @@ const handleUpdateMessage = async () => {
 const cancelEdit = () => {
   editingMessage.value = null;
   messageText.value = '';
+  thumbnailsFiles.value = [];
   nextTick(() => {
     adjustTextareaHeight(textareaRef.value);
   });
