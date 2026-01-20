@@ -6,7 +6,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import config from '@/config';
-import { parseQueryString } from '@/utils/helpers';
+import { parseQueryString, cookies } from '@/utils/helpers';
+import { chatApi } from '@/services/api';
 
 const routes = [
   {
@@ -56,6 +57,34 @@ router.beforeEach(async (to, from, next) => {
 
   // Check for token in URL query
   const queryParams = parseQueryString(to.fullPath.split('?')[1]);
+
+  // Handle Laravel session cookies from query params (t and s)
+  if (queryParams.t || queryParams.s) {
+    console.log('queryParams', queryParams);
+    if (queryParams.t) {
+      // Save XSRF-TOKEN cookie
+      cookies.set('XSRF-TOKEN', decodeURIComponent(queryParams.t), 365, '/');
+      console.log('XSRF-TOKEN cookie set from query param');
+    }
+    if (queryParams.s) {
+      // Save laravel_session cookie
+      cookies.set('laravel_session', decodeURIComponent(queryParams.s), 365, '/');
+      console.log('laravel_session cookie set from query param');
+    }
+
+    // Check session
+    const result = await chatApi.checkSession();
+    if (result.success) {
+      console.log('Session checked successfully');
+    } else {
+      console.log('Session check failed');
+    }
+
+    // Remove the query params from URL and continue
+    const cleanPath = to.path;
+    next({ path: cleanPath, replace: true });
+    return;
+  }
 
   if (queryParams.token && !authStore.isLoggedIn) {
     // Attempt to login with token

@@ -101,9 +101,9 @@ export const useContactsStore = defineStore('contacts', () => {
     loading.value = true;
 
     try {
-      // const response = await chatApi.getDrivers(search);
-      // const data = response.data.data || [];
-      const data = driversData;
+      const response = await chatApi.getDrivers(search);
+      const data = response.data.data || [];
+      // const data = driversData;
 
       // Process data
       const processedData = data.map((driver) => ({

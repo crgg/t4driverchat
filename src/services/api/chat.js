@@ -12,7 +12,20 @@ export const chatApi = {
    * @returns {Promise}
    */
   getDrivers(search = '') {
-    return http.get('/chat/drivers', { params: { search } });
+    console.log('getDrivers', search);
+    return http.get('/DriverTripListComplete', {
+      params: { search },
+      maxBodyLength: Infinity,
+      withCredentials: true,
+    });
+  },
+
+  checkSession() {
+    // /api/auth/session-check
+    return http.get('/api/auth/session-check', {
+      withCredentials: true,
+      maxBodyLength: Infinity,
+    });
   },
 
   /**

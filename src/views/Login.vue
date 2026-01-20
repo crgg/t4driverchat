@@ -1,20 +1,18 @@
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4"
-  >
+  <div class="min-h-screen flex items-center justify-center bg-[#f1f1f1] px-4">
     <div class="max-w-md w-full">
       <!-- Logo/Brand -->
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-white mb-2">
+      <div class="text-center mb-8 text-gray-500 space-y-4">
+        <h1 class="text-4xl font-bold mb-2">
           {{ config.app.name }}
         </h1>
-        <p class="text-primary-100">Sign in to continue</p>
+        <LoadingSpinner size="sm" />
+        <p>Loading...</p>
       </div>
 
       <!-- Login Form Card -->
       <div class="card p-8">
         <form class="space-y-6" @submit.prevent="handleSubmit">
-          <!-- Email Field -->
           <div>
             <label for="email" class="block text-sm font-medium text-secondary-700 mb-2">
               Email
@@ -34,7 +32,6 @@
             </p>
           </div>
 
-          <!-- Password Field -->
           <div>
             <label for="password" class="block text-sm font-medium text-secondary-700 mb-2">
               Password
@@ -65,14 +62,12 @@
             </p>
           </div>
 
-          <!-- Error Message -->
           <div v-if="errors.general" class="p-3 bg-red-50 border border-red-200 rounded-lg">
             <p class="text-sm text-red-800">
               {{ errors.general }}
             </p>
           </div>
 
-          <!-- Submit Button -->
           <button type="submit" class="w-full btn btn-primary py-3 text-lg" :disabled="loading">
             <span v-if="!loading">Sign In</span>
             <span v-else class="flex items-center justify-center">
@@ -101,23 +96,19 @@
           </button>
         </form>
       </div>
-
-      <!-- Footer -->
-      <div class="text-center mt-6">
-        <p class="text-primary-100 text-sm">
-          &copy; {{ new Date().getFullYear() }} {{ config.app.name }}. All rights reserved.
-        </p>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+// import { onMounted } from 'vue';
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
+import config from '@/config';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
-import config from '@/config';
+
 import gsap from 'gsap';
 
 const router = useRouter();
@@ -139,12 +130,10 @@ const showPassword = ref(false);
 const loading = ref(false);
 
 const handleSubmit = async () => {
-  // Clear previous errors
   errors.email = '';
   errors.password = '';
   errors.general = '';
 
-  // Basic validation
   if (!form.email) {
     errors.email = 'Email is required';
     return;
@@ -164,7 +153,6 @@ const handleSubmit = async () => {
     });
 
     if (result.success) {
-      // Redirect to intended page or chat
       const redirect = route.query.redirect || '/chat';
       router.push(redirect);
     } else {

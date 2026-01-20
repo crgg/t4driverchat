@@ -202,3 +202,59 @@ export const copyToClipboard = async (text) => {
     return false;
   }
 };
+
+/**
+ * Cookie utilities
+ */
+export const cookies = {
+  /**
+   * Set a cookie
+   * @param {string} name - Cookie name
+   * @param {string} value - Cookie value
+   * @param {number} days - Days until expiration (optional)
+   * @param {string} path - Cookie path (default: '/')
+   */
+  set(name, value, days = 365, path = '/') {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + (value || '') + expires + '; path=' + path;
+  },
+
+  /**
+   * Get a cookie value
+   * @param {string} name - Cookie name
+   * @returns {string|null} Cookie value or null if not found
+   */
+  get(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  },
+
+  /**
+   * Delete a cookie
+   * @param {string} name - Cookie name
+   * @param {string} path - Cookie path (default: '/')
+   */
+  remove(name, path = '/') {
+    document.cookie = name + '=; Max-Age=-99999999; path=' + path;
+  },
+
+  /**
+   * Check if a cookie exists
+   * @param {string} name - Cookie name
+   * @returns {boolean}
+   */
+  has(name) {
+    return this.get(name) !== null;
+  },
+};

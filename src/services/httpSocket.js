@@ -6,6 +6,7 @@
 import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
+import { cookies } from '@/utils/helpers';
 
 // Create axios instance
 const httpSocket = axios.create({
@@ -15,6 +16,7 @@ const httpSocket = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
+  // withCredentials: true, // Enable sending cookies
 });
 
 // Request interceptor
@@ -25,6 +27,13 @@ httpSocket.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add XSRF token from cookie if available
+    // const xsrfToken = cookies.get('XSRF-TOKEN');
+    // if (xsrfToken) {
+    //   config.headers['X-XSRF-TOKEN'] = xsrfToken;
+    // }
+
     return config;
   },
   (error) => {
