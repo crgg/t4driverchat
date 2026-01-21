@@ -14,7 +14,7 @@
             />
           </a>
         </div>
-        <span class="text-xs text-secondary-200 align-middle"> V 1.0.0 </span>
+        <span class="text-xs text-secondary-200 align-middle"> V {{ config.app.version }} </span>
       </div>
     </div>
     <div class="flex flex-col flex-1">
