@@ -20,21 +20,23 @@
           v-if="isOwn && isLastOwn && !message.sending"
           class="message-actions flex items-center gap-1 sm:gap-2 transition-opacity duration-200"
         >
-          <button
-            v-if="isTextMessage"
-            class="p-1.5 rounded-full bg-white shadow-md hover:bg-primary-50 transition-colors duration-200"
-            title="Edit message"
-            @click="emit('edit', message)"
-          >
-            <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
-          </button>
-          <button
-            class="p-1.5 rounded-full bg-white shadow-md hover:bg-red-50 transition-colors duration-200"
-            title="Delete message"
-            @click="emit('delete', message)"
-          >
-            <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
-          </button>
+          <template v-if="!isEditing">
+            <button
+              v-if="isTextMessage"
+              class="p-1.5 rounded-full bg-white shadow-md hover:bg-primary-50 transition-colors duration-200"
+              title="Edit message"
+              @click="emit('edit', message)"
+            >
+              <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
+            </button>
+            <button
+              class="p-1.5 rounded-full bg-white shadow-md hover:bg-red-50 transition-colors duration-200"
+              title="Delete message"
+              @click="emit('delete', message)"
+            >
+              <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
+            </button>
+          </template>
         </div>
         <!-- Message Bubble -->
         <div
