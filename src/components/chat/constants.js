@@ -3,7 +3,7 @@ export const INITIAL_STATE = {
     driverInformation: false,
   },
   textarea: {
-    minHeight: 45,
+    minHeight: 32,
     maxHeight: 200,
   },
 };

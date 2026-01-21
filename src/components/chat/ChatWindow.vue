@@ -36,7 +36,6 @@
               </h3>
               <p class="text-xs md:text-sm text-secondary-600 truncate">
                 #{{ currentRoom.contact.DRIVER_ID }}
-                <span v-if="sessionId" class="hidden sm:inline ml-2">Session: {{ sessionId }}</span>
               </p>
             </div>
           </div>
@@ -85,6 +84,7 @@
             v-for="(message, index) in currentMessages"
             :key="message.id"
             :message="message"
+            :previous-message="index > 0 ? currentMessages[index - 1] : null"
             :is-own="message.user === authStore.user?.username"
             :is-last-own="isLastOwnMessage(index)"
             :is-editing="editingMessage?.id === message.id"
@@ -136,63 +136,62 @@
             </div>
             <div
               :class="[
-                'w-full px-4 py-2 border border-secondary-300 rounded-lg',
-                thumbnailsFiles.length > 0 ? 'rounded-b-none border-b-0' : '',
+                'w-full px-4 py-2 border border-secondary-300 rounded-lg flex flex-col focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-transparent',
+                // thumbnailsFiles.length > 0 ? 'rounded-b-none border-b-0 pb-0' : '',
               ]"
             >
               <textarea
                 ref="textareaRef"
                 v-model="messageText"
                 rows="1"
-                class="w-full resize-none focus:ring-2 focus:ring-primary-500 focus:border-transparent custom-scrollbar bg-transparent outline-none"
+                class="w-full resize-none custom-scrollbar bg-transparent outline-none content-around"
                 :placeholder="editingMessage ? 'Edit your message...' : 'Type your message...'"
                 :disabled="sending"
                 @keydown.enter.exact.prevent="editingMessage ? handleUpdateMessage() : handleSend()"
                 @keydown.esc="cancelEdit"
                 @input="handleTyping"
               ></textarea>
-            </div>
-
-            <!-- File Preview -->
-            <div
-              v-if="thumbnailsFiles.length > 0"
-              class="w-full bg-white border border-secondary-300 border-t-0 rounded-b-lg p-2"
-            >
-              <div class="flex gap-2 flex-wrap">
-                <div
-                  v-for="thumbnail in thumbnailsFiles"
-                  :key="thumbnail.id"
-                  class="relative group"
-                >
+              <!-- File Preview -->
+              <div v-if="thumbnailsFiles.length > 0" class="w-full bg-white p-2">
+                <div class="flex gap-2 flex-wrap">
                   <div
-                    class="w-24 h-24 rounded-lg border border-secondary-200 bg-secondary-50 relative"
+                    v-for="thumbnail in thumbnailsFiles"
+                    :key="thumbnail.id"
+                    class="relative group"
                   >
-                    <button
-                      type="button"
-                      class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                      @click="removeThumbnail(thumbnail)"
+                    <div
+                      class="w-24 h-24 rounded-lg border border-secondary-200 bg-secondary-50 relative"
                     >
-                      <XMarkIcon class="h-4 w-4" />
-                    </button>
-                    <img
-                      v-if="thumbnail.type !== 'application/pdf'"
-                      :src="thumbnail.src"
-                      :alt="thumbnail.name"
-                      class="w-full h-full object-cover cursor-pointer rounded-lg"
-                      @click="previewImage(thumbnail.src, thumbnail.name)"
-                    />
-                    <PdfThumbnail
-                      v-else
-                      :pdf-url="thumbnail.src"
-                      :filename="thumbnail.name"
-                      :thumbnail-size="96"
-                      class="w-full h-full"
-                      @click="previewPdf(thumbnail.src, thumbnail.name)"
-                    />
+                      <button
+                        type="button"
+                        class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        @click="removeThumbnail(thumbnail)"
+                      >
+                        <XMarkIcon class="h-4 w-4" />
+                      </button>
+                      <img
+                        v-if="thumbnail.type !== 'application/pdf'"
+                        :src="thumbnail.src"
+                        :alt="thumbnail.name"
+                        class="w-full h-full object-cover cursor-pointer rounded-lg"
+                        @click="previewImage(thumbnail.src, thumbnail.name)"
+                      />
+                      <PdfThumbnail
+                        v-else
+                        :pdf-url="thumbnail.src"
+                        :filename="thumbnail.name"
+                        :thumbnail-size="96"
+                        class="w-full h-full"
+                        @click="previewPdf(thumbnail.src, thumbnail.name)"
+                      />
+                    </div>
+                    <p
+                      class="text-xs text-secondary-600 mt-1 truncate w-24"
+                      :title="thumbnail.name"
+                    >
+                      {{ thumbnail.name }}
+                    </p>
                   </div>
-                  <p class="text-xs text-secondary-600 mt-1 truncate w-24" :title="thumbnail.name">
-                    {{ thumbnail.name }}
-                  </p>
                 </div>
               </div>
             </div>
@@ -267,6 +266,7 @@ import {
   ChevronLeftIcon,
   InformationCircleIcon,
 } from '@heroicons/vue/24/outline';
+import axios from 'axios';
 
 import DriverInformationModal from '@/components/chat/DriverInformationModal.vue';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
@@ -284,6 +284,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import socketService from '@/services/socket';
 import config from '@/config';
+import storage from '@/utils/storage';
 
 const emit = defineEmits(['close-chat']);
 
@@ -322,7 +323,6 @@ const endChat = ref(true);
 const newMessage = ref(false);
 const indexDriverLastMessage = ref(-1);
 
-const sessionId = computed(() => currentRoom.value?.id);
 const isTyping = computed(() =>
   chatStore.isUserTyping(currentRoom.value?.id, authStore.user?.username)
 );
@@ -453,6 +453,7 @@ const handleSend = async () => {
     chatStore.clearDraft(currentRoom.value.id);
 
     nextTick(() => {
+      resetTextareaHeight(textareaRef.value);
       scrollToBottom(messagesContainer.value);
     });
   } catch (error) {
@@ -590,8 +591,7 @@ const uploadFiles = async () => {
   uploadProgress.value = 0;
 
   try {
-    const socketServerUrl =
-      document.querySelector('meta[name="MIX_URL_CHAT_SERVER"]')?.content || config.socket.url;
+    const socketServerUrl = config.socket.apiUrl;
     const uploadUrl = `${socketServerUrl}/upload-file`;
 
     // Upload each file
@@ -608,9 +608,8 @@ const uploadFiles = async () => {
       formData.append('user', authStore.user.username);
       formData.append('trip', currentRoom.value.contact.CURRENT_TRIP || '');
       formData.append('image', file);
-      formData.append('token', authStore.token || '');
+      formData.append('token', storage.get(config.storage.token) || '');
 
-      const axios = (await import('axios')).default;
       await axios.post(uploadUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -667,6 +666,7 @@ const handleEditMessage = (message) => {
       textarea.focus();
       textarea.setSelectionRange(messageText.value.length, messageText.value.length);
       adjustTextareaHeight(textarea);
+      scrollToBottom(messagesContainer.value);
     }
   });
 };
@@ -689,6 +689,11 @@ const handleUpdateMessage = async () => {
     messageText.value = '';
     editingMessage.value = null;
 
+    nextTick(() => {
+      resetTextareaHeight(textareaRef.value);
+      scrollToBottom(messagesContainer.value);
+    });
+
     notificationsStore.showSuccess('Message updated');
   } catch (error) {
     notificationsStore.showError('Failed to update message');
@@ -700,7 +705,7 @@ const cancelEdit = () => {
   messageText.value = '';
   thumbnailsFiles.value = [];
   nextTick(() => {
-    adjustTextareaHeight(textareaRef.value);
+    resetTextareaHeight(textareaRef.value);
   });
 };
 
@@ -734,6 +739,7 @@ const handleDeleteMessage = async (message) => {
 };
 
 const adjustTextareaHeight = (textarea) => {
+  // console.log('adjustTextareaHeight', textarea);
   if (!textarea) return;
   textarea.style.height = INITIAL_STATE.textarea.minHeight + 'px';
 
@@ -746,6 +752,11 @@ const adjustTextareaHeight = (textarea) => {
   } else {
     textarea.style.height = newHeight + 'px';
   }
+};
+
+const resetTextareaHeight = (textarea) => {
+  if (!textarea) return;
+  textarea.style.height = INITIAL_STATE.textarea.minHeight + 'px';
 };
 
 // Infinite scroll functions

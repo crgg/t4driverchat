@@ -10,11 +10,21 @@ import moment from 'moment';
  * @returns {string}
  */
 
+export const cn = (...classes) => {
+  return classes.join(' ');
+};
+
 // format = 'YYYY-MM-DD HH:mm:ss'
 export const formatDate = (date) => {
   if (!date) return '';
   const d = new Date(date);
   return d.toLocaleString();
+};
+
+export const formatHour = (date) => {
+  if (!date) return '';
+  const time = moment(date);
+  return time.format('h:mm A');
 };
 
 /**

@@ -1,6 +1,6 @@
 <template>
   <div class="h-screen flex bg-[#f4f6f9]">
-    <div class="bg-[#353a3f] w-20">
+    <div class="bg-[#353a3f] w-20 hidden md:block">
       <div
         class="flex flex-col gap-2 items-center justify-center p-1 rounded-full mt-4 text-center w-full"
       >

@@ -1,166 +1,176 @@
 <template>
-  <div
-    ref="messageRef"
-    class="message-container flex gap-3 mb-4 group"
-    :class="isOwn ? 'justify-end' : 'justify-start'"
-  >
-    <!-- Message Content -->
-    <div class="flex gap-2 max-w-[75%] sm:max-w-md lg:max-w-lg">
-      <!-- Edit/Delete Actions (only for last own message and text content) -->
-      <div
-        v-if="isOwn && isLastOwn && !message.sending"
-        class="message-actions flex items-center gap-1 sm:gap-2 transition-opacity duration-200"
-      >
-        <button
-          v-if="isTextMessage"
-          class="p-1.5 rounded-full bg-white shadow-md hover:bg-primary-50 transition-colors duration-200"
-          title="Edit message"
-          @click="emit('edit', message)"
-        >
-          <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
-        </button>
-        <button
-          class="p-1.5 rounded-full bg-white shadow-md hover:bg-red-50 transition-colors duration-200"
-          title="Delete message"
-          @click="emit('delete', message)"
-        >
-          <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
-        </button>
+  <div>
+    <!-- Date Divider -->
+    <div v-if="showDateDivider" class="date-divider-container">
+      <div class="date-divider">
+        <span class="date-divider-text">{{ dateLabel }}</span>
       </div>
-      <!-- Message Bubble -->
-      <div
-        class="message-bubble relative group/bubble"
-        :class="[
-          isOwn ? 'bubble-sent' : 'bubble-received',
-          message.sending ? 'bubble-sending' : '',
-          message.error ? 'bubble-error' : '',
-          isEditing ? 'bubble-editing' : '',
-        ]"
-      >
-        <!-- Text Message -->
-        <div v-if="isTextMessage" class="message-text">
-          <p class="whitespace-pre-wrap break-words leading-relaxed">
-            {{ message.message }}
-          </p>
-        </div>
+    </div>
 
-        <!-- Image Message -->
-        <div v-else-if="message.content === 'image'" class="message-media">
-          <div class="relative group/image cursor-pointer" @click="handleImageClick">
-            <img
-              :src="message.message"
-              alt="Image"
-              class="rounded-xl w-40 object-cover object-top h-40 transition-transform duration-300 group-hover/image:scale-[1.02]"
-              loading="lazy"
-            />
-            <div
-              class="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-all duration-300 rounded-xl flex items-center justify-center"
+    <!-- Message Container -->
+    <div
+      ref="messageRef"
+      class="message-container flex gap-3 mb-4 group"
+      :class="isOwn ? 'justify-end' : 'justify-start'"
+    >
+      <!-- Message Content -->
+      <div class="flex gap-2 max-w-[75%] sm:max-w-md lg:max-w-lg">
+        <!-- Edit/Delete Actions (only for last own message and text content) -->
+        <div
+          v-if="isOwn && isLastOwn && !message.sending"
+          class="message-actions flex items-center gap-1 sm:gap-2 transition-opacity duration-200"
+        >
+          <button
+            v-if="isTextMessage"
+            class="p-1.5 rounded-full bg-white shadow-md hover:bg-primary-50 transition-colors duration-200"
+            title="Edit message"
+            @click="emit('edit', message)"
+          >
+            <PencilSquareIcon class="h-4 w-4 text-primary-600 dark:text-primary-400" />
+          </button>
+          <button
+            class="p-1.5 rounded-full bg-white shadow-md hover:bg-red-50 transition-colors duration-200"
+            title="Delete message"
+            @click="emit('delete', message)"
+          >
+            <TrashIcon class="h-4 w-4 text-red-600 dark:text-red-400" />
+          </button>
+        </div>
+        <!-- Message Bubble -->
+        <div
+          class="message-bubble relative group/bubble"
+          :class="[
+            isOwn ? 'bubble-sent' : 'bubble-received',
+            message.sending ? 'bubble-sending' : '',
+            message.error ? 'bubble-error' : '',
+            isEditing ? 'bubble-editing' : '',
+          ]"
+        >
+          <!-- Text Message -->
+          <div v-if="isTextMessage" class="message-text !pb-0">
+            <p class="whitespace-pre-wrap break-words leading-relaxed !pe-5">
+              {{ message.message }}
+            </p>
+          </div>
+
+          <!-- Image Message -->
+          <div v-else-if="message.content === 'image'" class="message-media">
+            <div class="relative group/image cursor-pointer" @click="handleImageClick">
+              <img
+                :src="message.message"
+                alt="Image"
+                class="rounded-xl w-40 object-cover object-top h-40 transition-transform duration-300 group-hover/image:scale-[1.02]"
+                loading="lazy"
+              />
+              <div
+                class="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 transition-all duration-300 rounded-xl flex items-center justify-center"
+              >
+                <div
+                  class="opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-black/50 backdrop-blur-sm rounded-full p-3"
+                >
+                  <MagnifyingGlassIcon class="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PDF Message -->
+          <div v-else-if="message.content === 'pdf'" class="message-file">
+            <a
+              :href="message.message"
+              target="_blank"
+              class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
             >
               <div
-                class="opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-black/50 backdrop-blur-sm rounded-full p-3"
+                class="flex-shrink-0 p-2 rounded-lg bg-red-100 group-hover/file:scale-110 transition-transform duration-200"
               >
-                <MagnifyingGlassIcon class="h-6 w-6 text-white" />
+                <DocumentIcon class="h-6 w-6 text-red-600" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm truncate text-secondary-900">PDF Document</p>
+                <p class="text-xs text-secondary-500">Click to view</p>
+              </div>
+              <ArrowDownTrayIcon
+                class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
+              />
+            </a>
+          </div>
+
+          <!-- Video Message -->
+          <div v-else-if="message.content === 'video'" class="message-file">
+            <a
+              :href="message.message"
+              target="_blank"
+              class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
+            >
+              <div
+                class="flex-shrink-0 p-2 rounded-lg bg-purple-100 group-hover/file:scale-110 transition-transform duration-200"
+              >
+                <VideoCameraIcon class="h-6 w-6 text-purple-600" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm truncate text-secondary-900">Video</p>
+                <p class="text-xs text-secondary-500">Click to play</p>
+              </div>
+              <PlayIcon
+                class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
+              />
+            </a>
+          </div>
+
+          <!-- Loading overlay -->
+          <div
+            v-if="message.sending"
+            class="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl flex items-center justify-center"
+          >
+            <div class="flex items-center gap-2 text-secondary-600">
+              <ArrowPathIcon class="h-4 w-4 animate-spin" />
+              <span class="text-xs font-medium">Sending...</span>
+            </div>
+          </div>
+          <!-- Message Footer -->
+          <div
+            class="flex items-center gap-2 px-4 pb-2"
+            :class="isOwn ? 'justify-end' : 'justify-start'"
+          >
+            <!-- Time -->
+            <span class="text-[11px] text-secondary-500 font-medium">
+              {{ formatHour(message.created_at) }}
+            </span>
+
+            <!-- Status indicators for own messages -->
+            <div v-if="isOwn" class="flex items-center gap-1">
+              <!-- Sending -->
+              <div v-if="message.sending" class="flex items-center gap-1 text-secondary-400">
+                <ArrowPathIcon class="h-3.5 w-3.5 animate-spin" />
+                <span class="text-xs">Sending</span>
+              </div>
+
+              <!-- Error -->
+              <div v-else-if="message.error" class="flex items-center gap-1 text-red-500">
+                <ExclamationCircleIcon class="h-3.5 w-3.5" />
+                <span class="text-xs">Failed</span>
+              </div>
+
+              <!-- Read (double check) -->
+              <div v-else-if="message.read_at" class="flex items-center text-blue-600">
+                <CheckIcon style="stroke-width: 3" class="h-3 w-3 -mr-1.5" />
+                <CheckIcon style="stroke-width: 3" class="h-3 w-3" />
+              </div>
+
+              <!-- Delivered (single check) -->
+              <div v-else class="flex items-center text-secondary-400">
+                <CheckIcon style="stroke-width: 3" class="h-3 w-3" />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- PDF Message -->
-        <div v-else-if="message.content === 'pdf'" class="message-file">
-          <a
-            :href="message.message"
-            target="_blank"
-            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
-          >
-            <div
-              class="flex-shrink-0 p-2 rounded-lg bg-red-100 group-hover/file:scale-110 transition-transform duration-200"
-            >
-              <DocumentIcon class="h-6 w-6 text-red-600" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm truncate text-secondary-900">PDF Document</p>
-              <p class="text-xs text-secondary-500">Click to view</p>
-            </div>
-            <ArrowDownTrayIcon
-              class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
-            />
-          </a>
+        <!-- Reactions (placeholder for future feature) -->
+        <div v-if="false" class="flex items-center gap-1 mt-1 px-1">
+          <button class="reaction-btn">👍 2</button>
+          <button class="reaction-btn">❤️ 1</button>
         </div>
-
-        <!-- Video Message -->
-        <div v-else-if="message.content === 'video'" class="message-file">
-          <a
-            :href="message.message"
-            target="_blank"
-            class="flex items-center gap-3 p-3 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200 group/file"
-          >
-            <div
-              class="flex-shrink-0 p-2 rounded-lg bg-purple-100 group-hover/file:scale-110 transition-transform duration-200"
-            >
-              <VideoCameraIcon class="h-6 w-6 text-purple-600" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm truncate text-secondary-900">Video</p>
-              <p class="text-xs text-secondary-500">Click to play</p>
-            </div>
-            <PlayIcon
-              class="h-5 w-5 text-secondary-400 group-hover/file:text-primary-600 transition-colors duration-200"
-            />
-          </a>
-        </div>
-
-        <!-- Loading overlay -->
-        <div
-          v-if="message.sending"
-          class="absolute inset-0 bg-white/50 backdrop-blur-[1px] rounded-2xl flex items-center justify-center"
-        >
-          <div class="flex items-center gap-2 text-secondary-600">
-            <ArrowPathIcon class="h-4 w-4 animate-spin" />
-            <span class="text-xs font-medium">Sending...</span>
-          </div>
-        </div>
-        <!-- Message Footer -->
-        <div
-          class="flex items-center gap-2 px-4 pb-2"
-          :class="isOwn ? 'justify-end' : 'justify-start'"
-        >
-          <!-- Time -->
-          <span class="text-xs text-secondary-500 font-medium">
-            {{ formatTime(message.created_at) }}
-          </span>
-
-          <!-- Status indicators for own messages -->
-          <div v-if="isOwn" class="flex items-center gap-1">
-            <!-- Sending -->
-            <div v-if="message.sending" class="flex items-center gap-1 text-secondary-400">
-              <ArrowPathIcon class="h-3.5 w-3.5 animate-spin" />
-              <span class="text-xs">Sending</span>
-            </div>
-
-            <!-- Error -->
-            <div v-else-if="message.error" class="flex items-center gap-1 text-red-500">
-              <ExclamationCircleIcon class="h-3.5 w-3.5" />
-              <span class="text-xs">Failed</span>
-            </div>
-
-            <!-- Read (double check) -->
-            <div v-else-if="message.read_at" class="flex items-center text-blue-600">
-              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5 -mr-1.5" />
-              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
-            </div>
-
-            <!-- Delivered (single check) -->
-            <div v-else class="flex items-center text-secondary-400">
-              <CheckIcon style="stroke-width: 3" class="h-3.5 w-3.5" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reactions (placeholder for future feature) -->
-      <div v-if="false" class="flex items-center gap-1 mt-1 px-1">
-        <button class="reaction-btn">👍 2</button>
-        <button class="reaction-btn">❤️ 1</button>
       </div>
     </div>
   </div>
@@ -197,7 +207,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-// import moment from 'moment';
+import moment from 'moment';
 import gsap from 'gsap';
 
 import {
@@ -214,12 +224,16 @@ import {
   TrashIcon,
 } from '@heroicons/vue/24/outline';
 
-import { formatTime } from '@/utils/helpers';
+import { formatHour } from '@/utils/helpers';
 
 const props = defineProps({
   message: {
     type: Object,
     required: true,
+  },
+  previousMessage: {
+    type: Object,
+    default: null,
   },
   isOwn: {
     type: Boolean,
@@ -244,61 +258,109 @@ const isTextMessage = computed(() => {
   return !props.message.content || props.message.content === 'text';
 });
 
-// const formatTime = (time) => {
-//   if (!time) return '';
-//   const messageTime = moment(time);
-//   const now = moment();
+// Check if we should show a date divider
+const showDateDivider = computed(() => {
+  if (!props.previousMessage) {
+    return true; // Always show divider for first message
+  }
 
-//   if (now.diff(messageTime, 'hours') < 24) {
-//     return messageTime.format('HH:mm');
-//   } else if (now.diff(messageTime, 'days') < 7) {
-//     return messageTime.format('ddd HH:mm');
-//   } else {
-//     return messageTime.format('MMM DD, HH:mm');
-//   }
-// };
+  const currentDate = moment(props.message.created_at);
+  const previousDate = moment(props.previousMessage.created_at);
+
+  // Show divider if messages are from different days
+  return !currentDate.isSame(previousDate, 'day');
+});
+
+// Get formatted date label for divider
+const dateLabel = computed(() => {
+  if (!props.message.created_at) return '';
+
+  const messageDate = moment(props.message.created_at);
+  const today = moment();
+  const yesterday = moment().subtract(1, 'days');
+
+  // Check if today
+  if (messageDate.isSame(today, 'day')) {
+    return 'TODAY';
+  }
+
+  // Check if yesterday
+  if (messageDate.isSame(yesterday, 'day')) {
+    return 'YESTERDAY';
+  }
+
+  // Format as MM-DD-YYYY
+  return messageDate.format('MM-DD-YYYY');
+});
 
 const handleImageClick = () => {
   showImagePreview.value = true;
 };
 
 onMounted(async () => {
-  await nextTick();
+  try {
+    await nextTick();
 
-  if (!messageRef.value) return;
+    if (!messageRef.value) return;
 
-  // Staggered animation for message elements
-  const bubble = messageRef.value.querySelector('.message-bubble');
+    // Staggered animation for message elements
+    const bubble = messageRef.value.querySelector('.message-bubble');
 
-  if (props.isOwn) {
-    // Slide in from right for sent messages
-    gsap.from(bubble, {
-      duration: 0.4,
-      x: 50,
-      opacity: 0,
-      scale: 0.95,
-      ease: 'power2.out',
-    });
-  } else {
-    // Slide in from left for received messages
-    gsap.from(bubble, {
-      duration: 0.4,
-      x: -50,
-      opacity: 0,
-      scale: 0.95,
-      ease: 'power2.out',
-    });
-  }
+    // Ensure bubble exists before animating
+    if (!bubble) {
+      console.warn('Message bubble element not found');
+      return;
+    }
 
-  // Subtle bounce effect for text content
-  const textContent = bubble.querySelector('.message-text, .message-media, .message-file');
-  if (textContent) {
-    gsap.from(textContent, {
-      duration: 0.3,
-      scale: 0.98,
-      ease: 'back.out(2)',
-      delay: 0.15,
-    });
+    // Set initial visible state to prevent blank messages
+    gsap.set(bubble, { opacity: 1, x: 0, scale: 1 });
+
+    // Apply animation
+    if (props.isOwn) {
+      // Slide in from right for sent messages
+      gsap.from(bubble, {
+        duration: 0.4,
+        x: 50,
+        opacity: 0,
+        scale: 0.95,
+        ease: 'power2.out',
+        clearProps: 'all', // Clear inline styles after animation
+      });
+    } else {
+      // Slide in from left for received messages
+      gsap.from(bubble, {
+        duration: 0.4,
+        x: -50,
+        opacity: 0,
+        scale: 0.95,
+        ease: 'power2.out',
+        clearProps: 'all', // Clear inline styles after animation
+      });
+    }
+
+    // Subtle bounce effect for text content
+    const textContent = bubble.querySelector('.message-text, .message-media, .message-file');
+    if (textContent) {
+      // Ensure text content is visible
+      gsap.set(textContent, { scale: 1 });
+
+      gsap.from(textContent, {
+        duration: 0.3,
+        scale: 0.98,
+        ease: 'back.out(2)',
+        delay: 0.15,
+        clearProps: 'all', // Clear inline styles after animation
+      });
+    }
+  } catch (error) {
+    // If animation fails, ensure elements are visible
+    console.error('Animation error:', error);
+    if (messageRef.value) {
+      const bubble = messageRef.value.querySelector('.message-bubble');
+      if (bubble) {
+        gsap.set(bubble, { opacity: 1, x: 0, scale: 1 });
+      }
+    }
   }
 });
 </script>
@@ -312,21 +374,12 @@ onMounted(async () => {
 }
 
 .bubble-sent {
-  /* #dafbea */
   @apply bg-[#dafbea] text-slate-800 shadow text-sm;
 }
-
-/* .bubble-sent:hover {
-  @apply shadow-xl bg-white;
-} */
 
 .bubble-received {
   @apply bg-white text-slate-800 shadow text-sm;
 }
-
-/* .bubble-received:hover {
-  @apply shadow-lg border-secondary-200 dark:border-secondary-600;
-} */
 
 .bubble-sending {
   @apply opacity-70;
@@ -390,6 +443,19 @@ onMounted(async () => {
   @apply transition-colors duration-200;
 }
 
+/* Date Divider Styles */
+.date-divider-container {
+  @apply flex justify-center my-6;
+}
+
+.date-divider {
+  @apply bg-[#6b7478] text-white px-4 py-1.5 rounded-full shadow-sm;
+}
+
+.date-divider-text {
+  @apply text-xs font-semibold tracking-wide uppercase;
+}
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .message-container {
@@ -398,6 +464,14 @@ onMounted(async () => {
 
   .message-text {
     @apply px-3 py-2.5;
+  }
+
+  .date-divider {
+    @apply px-3 py-1;
+  }
+
+  .date-divider-text {
+    @apply text-[10px];
   }
 }
 </style>
