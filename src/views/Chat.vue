@@ -123,7 +123,7 @@ const setupSocketListeners = () => {
       });
 
       // Add message if from current driver
-      if (msg.user_send === chatStore.currentRoom?.driver_id) {
+      if (msg.user_send === chatStore.currentRoom?.user2_id) {
         chatStore.receiveMessage(msg);
       }
     } else {
@@ -218,7 +218,7 @@ const setupSocketListeners = () => {
 
     chatStore.setUserTyping({
       sessionId: msg.session_id,
-      username: msg.toUser,
+      username: msg.toUser || msg.user,
       newState: msg.newState,
     });
   });
