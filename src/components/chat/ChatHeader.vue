@@ -47,7 +47,7 @@
                 @click="handleLogout"
               >
                 <ArrowRightOnRectangleIcon class="h-4 w-4" />
-                Logout
+                Go Dashboard
               </button>
             </div>
           </transition>
@@ -59,7 +59,6 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import {
   ChevronDownIcon,
@@ -72,7 +71,6 @@ import socketService from '@/services/socket';
 import Avatar from '@/components/common/Avatar.vue';
 import config from '@/config';
 
-const router = useRouter();
 const authStore = useAuthStore();
 
 const { currentUser } = storeToRefs(authStore);
@@ -80,8 +78,9 @@ const { currentUser } = storeToRefs(authStore);
 const showUserMenu = ref(false);
 
 const handleLogout = async () => {
-  await authStore.logout();
-  router.push('/login');
+  // await authStore.logout();
+  // router.push('/login');
+  window.location.href = `${config.api.baseUrl}/dashboard`;
 };
 
 // Click outside directive would need to be registered globally
