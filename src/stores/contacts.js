@@ -7,6 +7,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { chatApi } from '@/services/api';
 import { useChatStore } from './chat';
+// import driversData from '@/fakeData/drivers.json';
 
 export const useContactsStore = defineStore('contacts', () => {
   // State
@@ -24,6 +25,7 @@ export const useContactsStore = defineStore('contacts', () => {
   const terminalZoneFilters = ref([]);
   const otherCodeFilters = ref([]);
   const selectedContacts = ref(new Map());
+  const filterOnlyOnlineUsers = ref(false);
 
   // Getters
   const hasActiveFilters = computed(() => {
@@ -53,18 +55,21 @@ export const useContactsStore = defineStore('contacts', () => {
     for (const contact of list) {
       const sessionId = sessionDrivers.get(contact.DRIVER_ID);
       const lastMessage = sessionId ? lastMessages.get(sessionId) : null;
+      const online = usersConnected.value.some((user) => user.username === contact.DRIVER_ID);
 
       if (lastMessage) {
         listWithMessages.push({
           ...contact,
           session: { id: sessionId },
           lastMessage: lastMessage,
+          isOnline: online,
         });
       } else {
         listWithoutMessages.push({
           ...contact,
           session: sessionId ? { id: sessionId } : null,
           lastMessage: undefined,
+          isOnline: online,
         });
       }
     }
@@ -77,7 +82,23 @@ export const useContactsStore = defineStore('contacts', () => {
       return 0;
     });
 
-    // Return contacts with messages first, then without messages
+    // If filterOnlyOnlineUsers is true, separate online and offline contacts
+    if (filterOnlyOnlineUsers.value) {
+      const listWithMessagesOnline = listWithMessages.filter((c) => c.isOnline);
+      const listWithMessagesOffline = listWithMessages.filter((c) => !c.isOnline);
+      const listWithoutMessagesOnline = listWithoutMessages.filter((c) => c.isOnline);
+      const listWithoutMessagesOffline = listWithoutMessages.filter((c) => !c.isOnline);
+
+      // Return online contacts first, then offline
+      return [
+        ...listWithMessagesOnline,
+        ...listWithoutMessagesOnline,
+        ...listWithMessagesOffline,
+        ...listWithoutMessagesOffline,
+      ];
+    }
+
+    // Return contacts with messages first, then without messages (default behavior)
     return [...listWithMessages, ...listWithoutMessages];
   });
 
@@ -382,6 +403,10 @@ export const useContactsStore = defineStore('contacts', () => {
     }
   };
 
+  const toggleFilterOnlyOnlineUsers = () => {
+    filterOnlyOnlineUsers.value = !filterOnlyOnlineUsers.value;
+  };
+
   return {
     // State
     drivers,
@@ -403,6 +428,7 @@ export const useContactsStore = defineStore('contacts', () => {
     isContactOnline,
     hasActiveFilters,
     selectedContacts,
+    filterOnlyOnlineUsers,
     // Actions
     loadDrivers,
     loadCarriers,
@@ -423,5 +449,6 @@ export const useContactsStore = defineStore('contacts', () => {
     clearContacts,
     // Selected Contacts
     toggleSelectedContact,
+    toggleFilterOnlyOnlineUsers,
   };
 });

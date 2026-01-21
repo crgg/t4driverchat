@@ -30,7 +30,25 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-cente relative gap-2">
+        <div class="flex items-cente relative gap-1">
+          <button
+            class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
+            :class="{
+              'bg-emerald-100 hover:bg-emerald-200': filterOnlyOnlineUsers,
+              'bg-secondary-100 hover:bg-secondary-200': !filterOnlyOnlineUsers,
+            }"
+            @click="contactsStore.toggleFilterOnlyOnlineUsers"
+          >
+            <div
+              :class="[
+                'w-5 h-5 rounded-full',
+                {
+                  'bg-emerald-500': filterOnlyOnlineUsers,
+                  'bg-secondary-300': !filterOnlyOnlineUsers,
+                },
+              ]"
+            ></div>
+          </button>
           <button
             class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
             :class="{
@@ -173,6 +191,7 @@ const {
   activeFiltersCount,
   hasActiveFilters,
   selectedContacts,
+  filterOnlyOnlineUsers,
 } = storeToRefs(contactsStore);
 
 const { username } = storeToRefs(authStore);
