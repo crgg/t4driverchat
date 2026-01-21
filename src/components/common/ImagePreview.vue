@@ -53,6 +53,7 @@ const close = () => {
 };
 
 const onImageLoad = (event) => {
+  console.log('Props', props);
   console.log('Image loaded:', event.target.naturalWidth, 'x', event.target.naturalHeight);
 };
 </script>

@@ -6,7 +6,7 @@
 import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
-import { cookies } from '@/utils/helpers';
+import router from '@/router';
 
 // Create axios instance
 const httpSocket = axios.create({
@@ -42,51 +42,51 @@ httpSocket.interceptors.request.use(
 );
 
 // Response interceptor
-// httpSocket.interceptors.response.use(
-//   (response) => {
-//     return response;
-//   },
-//   (error) => {
-//     // Handle different error scenarios
-//     if (error.response) {
-//       const { status } = error.response;
+httpSocket.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // Handle different error scenarios
+    if (error.response) {
+      const { status } = error.response;
 
-//       switch (status) {
-//         case 401:
-//           // Unauthorized - clear storage and redirect to login
-//           storage.remove(configApp.storage.token);
-//           storage.remove(configApp.storage.user);
-//           router.push(configApp.routes.login);
-//           break;
+      switch (status) {
+        case 401:
+          // Unauthorized - clear storage and redirect to login
+          storage.remove(configApp.storage.token);
+          storage.remove(configApp.storage.user);
+          router.push(configApp.routes.login);
+          break;
 
-//         case 403:
-//           // Forbidden
-//           console.error('Access forbidden');
-//           break;
+        case 403:
+          // Forbidden
+          console.error('Access forbidden');
+          break;
 
-//         case 404:
-//           // Not found
-//           console.error('Resource not found');
-//           break;
+        case 404:
+          // Not found
+          console.error('Resource not found');
+          break;
 
-//         case 500:
-//           // Server error
-//           console.error('Internal server error');
-//           break;
+        case 500:
+          // Server error
+          console.error('Internal server error');
+          break;
 
-//         default:
-//           console.error('An error occurred:', error.response.data);
-//       }
-//     } else if (error.request) {
-//       // Request was made but no response received
-//       console.error('No response from server');
-//     } else {
-//       // Something else happened
-//       console.error('Error:', error.message);
-//     }
+        default:
+          console.error('An error occurred:', error.response.data);
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('No response from server');
+    } else {
+      // Something else happened
+      console.error('Error:', error.message);
+    }
 
-//     return Promise.reject(error);
-//   }
-// );
+    return Promise.reject(error);
+  }
+);
 
 export default httpSocket;

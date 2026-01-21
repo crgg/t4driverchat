@@ -84,13 +84,18 @@ const loadError = ref(false);
 const blobUrl = ref(null);
 let loadingTimeout = null;
 
+// Computed property without side effects
 const pdfBlobUrl = computed(() => {
   if (!props.isBase64) {
     return props.pdfUrl;
   }
+  return blobUrl.value || props.pdfUrl;
+});
 
-  if (blobUrl.value) {
-    return blobUrl.value;
+// Convert base64 to blob URL
+const convertToBlob = () => {
+  if (!props.isBase64 || !props.pdfUrl) {
+    return;
   }
 
   try {
@@ -108,13 +113,11 @@ const pdfBlobUrl = computed(() => {
 
     const blob = new Blob([bytes], { type: 'application/pdf' });
     blobUrl.value = URL.createObjectURL(blob);
-    return blobUrl.value;
   } catch (error) {
     console.error('Error converting PDF to blob URL:', error);
     loadError.value = true;
-    return props.pdfUrl;
   }
-});
+};
 
 const close = () => {
   emit('update:modelValue', false);
@@ -148,12 +151,16 @@ onBeforeUnmount(() => {
   }
 });
 
+// Watch for modal opening to convert PDF and setup loading timeout
 watch(
   () => props.modelValue,
   (newValue) => {
     if (newValue) {
       loading.value = true;
       loadError.value = false;
+
+      // Convert PDF to blob if needed
+      convertToBlob();
 
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
@@ -168,6 +175,22 @@ watch(
         clearTimeout(loadingTimeout);
         loadingTimeout = null;
       }
+    }
+  }
+);
+
+// Watch for PDF URL changes
+watch(
+  () => props.pdfUrl,
+  () => {
+    // Clean up old blob URL
+    if (blobUrl.value) {
+      URL.revokeObjectURL(blobUrl.value);
+      blobUrl.value = null;
+    }
+    // Convert new PDF
+    if (props.modelValue) {
+      convertToBlob();
     }
   }
 );

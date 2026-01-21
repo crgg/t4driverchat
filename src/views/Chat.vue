@@ -3,11 +3,14 @@
     <div class="bg-[#353a3f] w-20">
       <div class="flex items-center justify-center p-1 rounded-full mt-4 text-center w-full">
         <div class="bg-white p-1 rounded-full">
-          <img
-            src="/images/logonewsmall.png"
-            alt="App Logo"
-            class="w-8 h-8 object-contain mx-auto"
-          />
+          <a :href="`${config.api.baseUrl}/dashboard`">
+            <span class="sr-only">Go Back to Dashboard</span>
+            <img
+              src="/images/logonewsmall.png"
+              alt="App Logo"
+              class="w-8 h-8 object-contain mx-auto"
+            />
+          </a>
         </div>
       </div>
     </div>
@@ -57,6 +60,7 @@ import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContactList from '@/components/chat/ContactList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 import { useSocket } from '@/composables';
+import config from '@/config';
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();

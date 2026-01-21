@@ -28,8 +28,6 @@
               :name="currentRoom.contact.NAME"
               :src="currentRoom.contact.picture_name"
               size="md"
-              :status="isContactOnline ? 'online' : 'offline'"
-              show-status
               class="flex-shrink-0"
             />
             <div class="min-w-0 flex-1">
@@ -282,7 +280,6 @@ import PdfPreview from '@/components/common/PdfPreview.vue';
 import { useNotificationsStore } from '@/stores/notifications';
 import { INITIAL_STATE } from '@/components/chat/constants';
 import { scrollToBottom, throttle } from '@/utils/helpers';
-import { useContactsStore } from '@/stores/contacts';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import socketService from '@/services/socket';
@@ -292,11 +289,9 @@ const emit = defineEmits(['close-chat']);
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
-const contactsStore = useContactsStore();
 const notificationsStore = useNotificationsStore();
 
 const { currentRoom, currentMessages, loadingMessages } = storeToRefs(chatStore);
-const { isContactOnline } = contactsStore;
 
 const showDriverInformation = ref(INITIAL_STATE.modal.driverInformation);
 const messagesContainer = ref(null);
@@ -602,7 +597,7 @@ const uploadFiles = async () => {
     // Upload each file
     for (const file of files) {
       const isImage = config.chat.allowedImageTypes.includes(file.type);
-      const isPdf = config.chat.allowedPdfTypes.includes(file.type);
+      // const isPdf = config.chat.allowedPdfTypes.includes(file.type);
       const content = isImage ? 'image' : 'pdf';
 
       const formData = new FormData();

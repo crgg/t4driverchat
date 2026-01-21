@@ -7,7 +7,6 @@ import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
 import router from '@/router';
-import { cookies } from '@/utils/helpers';
 
 // Create axios instance
 const httpClient = axios.create({
@@ -23,24 +22,10 @@ const httpClient = axios.create({
 // Request interceptor
 httpClient.interceptors.request.use(
   (config) => {
-    // Add authorization token if available
     const token = storage.get(configApp.storage.token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Add XSRF token from cookie if available
-    const xsrfToken = cookies.get('XSRF-TOKEN');
-    if (xsrfToken) {
-      config.headers['X-XSRF-TOKEN'] = xsrfToken;
-    }
-
-    const laravelSession = cookies.get('laravel_session');
-    if (laravelSession) {
-      config.headers['laravel_session'] = laravelSession;
-    }
-
-    // config.headers['Cookie'] = `XSRF-TOKEN=${xsrfToken}; laravel_session=${laravelSession}`;
 
     return config;
   },

@@ -129,6 +129,64 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   /**
+   * Login with session token and validate
+   * @param {string} sessionToken
+   * @param {Function} checkSessionFn - Function to check session validity
+   */
+  const loginWithSession = async (sessionToken, checkSessionFn) => {
+    loading.value = true;
+    error.value = null;
+
+    try {
+      // Store token first
+      token.value = sessionToken;
+      storage.set(config.storage.token, sessionToken);
+
+      // Validate session
+      const response = await checkSessionFn();
+
+      // Check if authenticated
+      if (response.data && response.data.authenticated) {
+        // Map response data to user format
+        const userData = {
+          id: response.data.user_id,
+          name: response.data.name,
+          email: response.data.email,
+          username: response.data.username,
+          role: response.data.role,
+        };
+
+        // Store in state
+        user.value = userData;
+        isAuthenticated.value = true;
+
+        // Persist to storage
+        storage.set(config.storage.user, userData);
+
+        // Connect socket
+        if (userData.username) {
+          socketService.connect(userData.username, {
+            user: userData,
+            token: sessionToken,
+          });
+        }
+
+        return { success: true, data: userData };
+      } else {
+        throw new Error('Session not authenticated');
+      }
+    } catch (err) {
+      // Clear token on error
+      token.value = null;
+      storage.remove(config.storage.token);
+      error.value = err.response?.data?.message || 'Session authentication failed';
+      return { success: false, error: error.value };
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  /**
    * Logout user
    */
   const logout = async () => {
@@ -202,6 +260,7 @@ export const useAuthStore = defineStore('auth', () => {
     initializeAuth,
     login,
     loginWithToken,
+    loginWithSession,
     logout,
     verifyToken,
     refreshUser,

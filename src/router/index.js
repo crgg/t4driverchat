@@ -6,7 +6,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import config from '@/config';
-import { parseQueryString, cookies } from '@/utils/helpers';
+import { parseQueryString } from '@/utils/helpers';
 import { chatApi } from '@/services/api';
 
 const routes = [
@@ -58,32 +58,23 @@ router.beforeEach(async (to, from, next) => {
   // Check for token in URL query
   const queryParams = parseQueryString(to.fullPath.split('?')[1]);
 
-  // Handle Laravel session cookies from query params (t and s)
-  if (queryParams.t || queryParams.s) {
-    console.log('queryParams', queryParams);
-    if (queryParams.t) {
-      // Save XSRF-TOKEN cookie
-      cookies.set('XSRF-TOKEN', decodeURIComponent(queryParams.t), 365, '/');
-      console.log('XSRF-TOKEN cookie set from query param');
-    }
-    if (queryParams.s) {
-      // Save laravel_session cookie
-      cookies.set('laravel_session', decodeURIComponent(queryParams.s), 365, '/');
-      console.log('laravel_session cookie set from query param');
-    }
+  // Handle Laravel session token from query params (t)
+  if (queryParams.t && !authStore.isLoggedIn) {
+    try {
+      const result = await authStore.loginWithSession(queryParams.t, () => chatApi.checkSession());
 
-    // Check session
-    const result = await chatApi.checkSession();
-    if (result.success) {
-      console.log('Session checked successfully');
-    } else {
-      console.log('Session check failed');
+      if (result.success) {
+        next({ name: 'Chat', replace: true });
+        return;
+      } else {
+        next({ name: 'Login', replace: true });
+        return;
+      }
+    } catch (error) {
+      console.error('Error during session authentication:', error);
+      next({ name: 'Login', replace: true });
+      return;
     }
-
-    // Remove the query params from URL and continue
-    const cleanPath = to.path;
-    next({ path: cleanPath, replace: true });
-    return;
   }
 
   if (queryParams.token && !authStore.isLoggedIn) {

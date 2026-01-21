@@ -12,8 +12,7 @@ export const chatApi = {
    * @returns {Promise}
    */
   getDrivers(search = '') {
-    console.log('getDrivers', search);
-    return http.get('/DriverTripListComplete', {
+    return http.get('/api/t4chat/DriverTripListComplete', {
       params: { search },
       maxBodyLength: Infinity,
       withCredentials: true,
@@ -21,8 +20,16 @@ export const chatApi = {
   },
 
   checkSession() {
-    // /api/auth/session-check
-    return http.get('/api/auth/session-check', {
+    // Response:
+    // {
+    //   "authenticated": true,
+    //   "user_id": 1,
+    //   "email": "ramon@gotologistics.net",
+    //   "username": "RAMON",
+    //   "name": "Ramon Gajardo",
+    //   "role": "admin",
+    // }
+    return http.get('/api/auth/validate-session-token', {
       withCredentials: true,
       maxBodyLength: Infinity,
     });

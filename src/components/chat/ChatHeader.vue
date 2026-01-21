@@ -2,7 +2,15 @@
   <header class="bg-[#f6f8fa] border-b border-secondary-300 px-3 md:px-6 py-3 md:py-4">
     <div class="flex items-center justify-between">
       <!-- Logo/Title -->
-      <div class="flex items-center gap-2 md:gap-3"></div>
+      <div class="flex items-center gap-2 md:gap-3">
+        <a
+          :href="`${config.api.baseUrl}/dashboard`"
+          class="text-secondary-700 hover:text-secondary-900 flex items-center gap-2"
+        >
+          <ArrowLeftIcon class="h-4 w-4" />
+          <span class="text-sm font-medium">Go Back to Dashboard</span>
+        </a>
+      </div>
 
       <!-- User Info & Actions -->
       <div class="flex items-center gap-2 md:gap-4">
@@ -53,11 +61,16 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
-import { ChevronDownIcon, ArrowRightOnRectangleIcon } from '@heroicons/vue/24/outline';
+import {
+  ChevronDownIcon,
+  ArrowRightOnRectangleIcon,
+  ArrowLeftIcon,
+} from '@heroicons/vue/24/outline';
 
 import { useAuthStore } from '@/stores/auth';
 import socketService from '@/services/socket';
 import Avatar from '@/components/common/Avatar.vue';
+import config from '@/config';
 
 const router = useRouter();
 const authStore = useAuthStore();

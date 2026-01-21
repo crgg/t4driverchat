@@ -1,8 +1,8 @@
 <template>
   <div
     class="pdf-thumbnail-container"
-    @click="$emit('click')"
     :style="{ width: '100%', minHeight: '100%' }"
+    @click="handleClick"
   >
     <!-- Loading spinner overlay -->
     <div
@@ -43,6 +43,10 @@ const isLoading = ref(true);
 const pdfDoc = shallowRef(null);
 const blobUrl = ref(null);
 let pdfjsLib = null;
+
+const handleClick = () => {
+  emit('click');
+};
 
 onMounted(async () => {
   if (window.pdfjsLib) {
