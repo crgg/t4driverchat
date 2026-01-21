@@ -1,7 +1,9 @@
 <template>
   <div class="h-screen flex bg-[#f4f6f9]">
     <div class="bg-[#353a3f] w-20">
-      <div class="flex items-center justify-center p-1 rounded-full mt-4 text-center w-full">
+      <div
+        class="flex flex-col gap-2 items-center justify-center p-1 rounded-full mt-4 text-center w-full"
+      >
         <div class="bg-white p-1 rounded-full">
           <a :href="`${config.api.baseUrl}/dashboard`">
             <span class="sr-only">Go Back to Dashboard</span>
@@ -12,6 +14,7 @@
             />
           </a>
         </div>
+        <span class="text-xs text-secondary-200 align-middle"> V 1.0.0 </span>
       </div>
     </div>
     <div class="flex flex-col flex-1">

@@ -20,11 +20,13 @@
             class="flex items-center gap-1 md:gap-2 p-1.5 md:p-2 hover:bg-secondary-100 rounded-lg transition-colors"
             @click="showUserMenu = !showUserMenu"
           >
-            <span
-              class="hidden sm:block text-sm font-medium text-secondary-700 max-w-[120px] truncate"
-            >
-              {{ currentUser?.name || currentUser?.username }}
-            </span>
+            <div>
+              <span
+                class="hidden sm:block text-sm font-medium text-secondary-700 max-w-[120px] truncate"
+              >
+                {{ currentUser?.name || currentUser?.username }}
+              </span>
+            </div>
             <Avatar
               :status="socketService.isConnected() ? 'online' : 'offline'"
               :name="currentUser?.name || currentUser?.username"
