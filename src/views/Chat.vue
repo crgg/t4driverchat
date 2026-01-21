@@ -14,7 +14,12 @@
             />
           </a>
         </div>
-        <span class="text-xs text-secondary-200 align-middle"> V {{ config.app.version }} </span>
+        <div class="flex flex-col">
+          <span class="text-xs align-middle hidden md:block text-secondary-200 uppercase font-bold">
+            {{ config.app.acronym }}
+          </span>
+          <span class="text-xs text-secondary-200 align-middle"> V {{ config.app.version }} </span>
+        </div>
       </div>
     </div>
     <div class="flex flex-col flex-1">

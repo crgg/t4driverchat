@@ -8,7 +8,12 @@
           class="text-secondary-700 hover:text-secondary-900 flex items-center gap-2"
         >
           <ArrowLeftIcon class="h-4 w-4" />
-          <span class="text-sm font-medium">Go Back to Dashboard</span>
+          <div class="flex flex-col">
+            <span class="text-sm font-medium">Go Back to Dashboard</span>
+            <span class="text-xs align-middle font-normal block md:hidden">
+              {{ config.app.acronym }}
+            </span>
+          </div>
         </a>
       </div>
 

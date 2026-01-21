@@ -25,7 +25,7 @@ export const useContactsStore = defineStore('contacts', () => {
   const terminalZoneFilters = ref([]);
   const otherCodeFilters = ref([]);
   const selectedContacts = ref(new Map());
-  const filterOnlyOnlineUsers = ref(false);
+  const filterOnlyOnlineUsers = ref(true);
 
   // Getters
   const hasActiveFilters = computed(() => {

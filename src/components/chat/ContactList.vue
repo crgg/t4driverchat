@@ -31,49 +31,68 @@
 
         <!-- Action Buttons -->
         <div class="flex items-cente relative gap-1">
-          <button
-            class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
-            :class="{
-              'bg-emerald-100 hover:bg-emerald-200': filterOnlyOnlineUsers,
-              'bg-secondary-100 hover:bg-secondary-200': !filterOnlyOnlineUsers,
-            }"
-            @click="contactsStore.toggleFilterOnlyOnlineUsers"
+          <Tooltip
+            :text="filterOnlyOnlineUsers ? 'Show online users first' : 'Show all users'"
+            position="bottom"
           >
-            <div
-              :class="[
-                'w-5 h-5 rounded-full',
-                {
-                  'bg-emerald-500': filterOnlyOnlineUsers,
-                  'bg-secondary-300': !filterOnlyOnlineUsers,
-                },
-              ]"
-            ></div>
-          </button>
-          <button
-            class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
-            :class="{
-              'bg-primary-200 text-primary-700 hover:bg-primary-300': activeFiltersCount > 0,
-            }"
-            @click="showFilterModal = true"
-          >
-            <FunnelIcon class="h-5 w-5" />
-            <span
-              v-if="activeFiltersCount > 0"
-              class="text-sm absolute -top-3 -right-2 p-1 text-primary-700 font-bold"
+            <button
+              class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
+              :class="{
+                'bg-emerald-100 hover:bg-emerald-200': filterOnlyOnlineUsers,
+                'bg-secondary-100 hover:bg-secondary-200': !filterOnlyOnlineUsers,
+              }"
+              @click="contactsStore.toggleFilterOnlyOnlineUsers"
             >
-              {{ activeFiltersCount }}
-            </span>
-          </button>
-          <button
-            class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
-            :class="{
-              'bg-primary-700 text-white hover:bg-primary-600': enabledSelectContacts,
-              'bg-secondary-100 hover:bg-secondary-200': !enabledSelectContacts,
-            }"
-            @click="handleEnableSelectContacts"
+              <div
+                :class="[
+                  'w-5 h-5 rounded-full',
+                  {
+                    'bg-emerald-500': filterOnlyOnlineUsers,
+                    'bg-secondary-300': !filterOnlyOnlineUsers,
+                  },
+                ]"
+              ></div>
+            </button>
+          </Tooltip>
+          <Tooltip
+            :text="
+              activeFiltersCount > 0
+                ? `${activeFiltersCount} filter${activeFiltersCount > 1 ? 's' : ''} active`
+                : 'Filter contacts'
+            "
+            position="bottom"
           >
-            <RectangleGroupIcon class="h-6 w-6" />
-          </button>
+            <button
+              class="flex-1 flex border items-center justify-center gap-2 bg-secondary-100 hover:bg-secondary-200 rounded-lg transition-colors h-[42px] w-[42px]"
+              :class="{
+                'bg-primary-200 text-primary-700 hover:bg-primary-300': activeFiltersCount > 0,
+              }"
+              @click="showFilterModal = true"
+            >
+              <FunnelIcon class="h-5 w-5" />
+              <span
+                v-if="activeFiltersCount > 0"
+                class="text-sm absolute -top-3 -right-2 p-1 text-primary-700 font-bold"
+              >
+                {{ activeFiltersCount }}
+              </span>
+            </button>
+          </Tooltip>
+          <Tooltip
+            :text="enabledSelectContacts ? 'Disable multi-select' : 'Enable multi-select'"
+            position="bottom"
+          >
+            <button
+              class="flex-1 flex border items-center justify-center gap-2 rounded-lg transition-colors h-[42px] w-[42px]"
+              :class="{
+                'bg-primary-700 text-white hover:bg-primary-600': enabledSelectContacts,
+                'bg-secondary-100 hover:bg-secondary-200': !enabledSelectContacts,
+              }"
+              @click="handleEnableSelectContacts"
+            >
+              <RectangleGroupIcon class="h-6 w-6" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
@@ -174,6 +193,7 @@ import ContactItem from '@/components/chat/ContactItem.vue';
 import FilterModal from '@/components/chat/FilterModal.vue';
 import Modal from '@/components/common/Modal.vue';
 import SenBulkMessageModal from '@/components/chat/SenBulkMessageModal.vue';
+import Tooltip from '@/components/common/Tooltip.vue';
 
 const contactsStore = useContactsStore();
 const chatStore = useChatStore();
