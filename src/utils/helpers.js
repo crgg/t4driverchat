@@ -1,3 +1,4 @@
+import moment from 'moment';
 /**
  * General utility helper functions
  */
@@ -257,4 +258,36 @@ export const cookies = {
   has(name) {
     return this.get(name) !== null;
   },
+};
+
+export const formatTime = (time) => {
+  if (!time) return '';
+
+  const messageTime = moment(time);
+  const now = moment();
+
+  // If today, show only time
+  if (now.isSame(messageTime, 'day')) {
+    return messageTime.format('h:mm A');
+  }
+
+  // If yesterday
+  const yesterday = moment().subtract(1, 'days');
+  if (yesterday.isSame(messageTime, 'day')) {
+    return 'Yesterday';
+  }
+
+  // If within this week, show day name
+  const daysAgo = now.diff(messageTime, 'days');
+  if (daysAgo < 7) {
+    return messageTime.format('ddd'); // Mon, Tue, etc.
+  }
+
+  // If within this year, show month and day
+  if (now.isSame(messageTime, 'year')) {
+    return messageTime.format('MM/DD');
+  }
+
+  // Otherwise show full date
+  return messageTime.format('MM/DD/YYYY');
 };

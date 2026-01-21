@@ -197,7 +197,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
-import moment from 'moment';
+// import moment from 'moment';
 import gsap from 'gsap';
 
 import {
@@ -213,6 +213,8 @@ import {
   PencilSquareIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline';
+
+import { formatTime } from '@/utils/helpers';
 
 const props = defineProps({
   message: {
@@ -242,19 +244,19 @@ const isTextMessage = computed(() => {
   return !props.message.content || props.message.content === 'text';
 });
 
-const formatTime = (time) => {
-  if (!time) return '';
-  const messageTime = moment(time);
-  const now = moment();
+// const formatTime = (time) => {
+//   if (!time) return '';
+//   const messageTime = moment(time);
+//   const now = moment();
 
-  if (now.diff(messageTime, 'hours') < 24) {
-    return messageTime.format('HH:mm');
-  } else if (now.diff(messageTime, 'days') < 7) {
-    return messageTime.format('ddd HH:mm');
-  } else {
-    return messageTime.format('MMM DD, HH:mm');
-  }
-};
+//   if (now.diff(messageTime, 'hours') < 24) {
+//     return messageTime.format('HH:mm');
+//   } else if (now.diff(messageTime, 'days') < 7) {
+//     return messageTime.format('ddd HH:mm');
+//   } else {
+//     return messageTime.format('MMM DD, HH:mm');
+//   }
+// };
 
 const handleImageClick = () => {
   showImagePreview.value = true;
