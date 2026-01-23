@@ -11,7 +11,7 @@
       </div>
 
       <!-- Login Form Card -->
-      <div class="card p-8">
+      <!-- <div class="card p-8">
         <form class="space-y-6" @submit.prevent="handleSubmit">
           <div>
             <label for="email" class="block text-sm font-medium text-secondary-700 mb-2">
@@ -95,83 +95,82 @@
             </span>
           </button>
         </form>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-// import { onMounted } from 'vue';
+// import { ref, reactive, onMounted } from 'vue';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
 import config from '@/config';
-import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
+// import { useRouter, useRoute } from 'vue-router';
+// import { useAuthStore } from '@/stores/auth';
+// import { EyeIcon, EyeSlashIcon } from '@heroicons/vue/24/outline';
 
-import gsap from 'gsap';
+// import gsap from 'gsap';
 
-const router = useRouter();
-const route = useRoute();
-const authStore = useAuthStore();
+// const router = useRouter();
+// const route = useRoute();
+// const authStore = useAuthStore();
 
-const form = reactive({
-  email: '',
-  password: '',
-});
+// const form = reactive({
+//   email: '',
+//   password: '',
+// });
 
-const errors = reactive({
-  email: '',
-  password: '',
-  general: '',
-});
+// const errors = reactive({
+//   email: '',
+//   password: '',
+//   general: '',
+// });
 
-const showPassword = ref(false);
-const loading = ref(false);
+// const showPassword = ref(false);
+// const loading = ref(false);
 
-const handleSubmit = async () => {
-  errors.email = '';
-  errors.password = '';
-  errors.general = '';
+// const handleSubmit = async () => {
+//   errors.email = '';
+//   errors.password = '';
+//   errors.general = '';
 
-  if (!form.email) {
-    errors.email = 'Email is required';
-    return;
-  }
+//   if (!form.email) {
+//     errors.email = 'Email is required';
+//     return;
+//   }
 
-  if (!form.password) {
-    errors.password = 'Password is required';
-    return;
-  }
+//   if (!form.password) {
+//     errors.password = 'Password is required';
+//     return;
+//   }
 
-  loading.value = true;
+//   loading.value = true;
 
-  try {
-    const result = await authStore.login({
-      email: form.email,
-      password: form.password,
-    });
+//   try {
+//     const result = await authStore.login({
+//       email: form.email,
+//       password: form.password,
+//     });
 
-    if (result.success) {
-      const redirect = route.query.redirect || '/chat';
-      router.push(redirect);
-    } else {
-      errors.general = result.error || 'Invalid credentials';
-    }
-  } catch (error) {
-    errors.general = 'An error occurred. Please try again.';
-  } finally {
-    loading.value = false;
-  }
-};
+//     if (result.success) {
+//       const redirect = route.query.redirect || '/chat';
+//       router.push(redirect);
+//     } else {
+//       errors.general = result.error || 'Invalid credentials';
+//     }
+//   } catch (error) {
+//     errors.general = 'An error occurred. Please try again.';
+//   } finally {
+//     loading.value = false;
+//   }
+// };
 
-onMounted(() => {
-  // Animate form on mount
-  gsap.from('.card', {
-    duration: 0.6,
-    y: 50,
-    opacity: 0,
-    ease: 'power3.out',
-  });
-});
+// onMounted(() => {
+//   // Animate form on mount
+//   gsap.from('.card', {
+//     duration: 0.6,
+//     y: 50,
+//     opacity: 0,
+//     ease: 'power3.out',
+//   });
+// });
 </script>
