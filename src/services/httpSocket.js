@@ -6,7 +6,7 @@
 import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
-import router from '@/router';
+// import router from '@/router';
 
 // Create axios instance
 const httpSocket = axios.create({
@@ -27,12 +27,6 @@ httpSocket.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Add XSRF token from cookie if available
-    // const xsrfToken = cookies.get('XSRF-TOKEN');
-    // if (xsrfToken) {
-    //   config.headers['X-XSRF-TOKEN'] = xsrfToken;
-    // }
 
     return config;
   },
@@ -56,7 +50,8 @@ httpSocket.interceptors.response.use(
           // Unauthorized - clear storage and redirect to login
           storage.remove(configApp.storage.token);
           storage.remove(configApp.storage.user);
-          router.push(configApp.routes.login);
+          // router.push(configApp.routes.login);
+          window.location.href = `${configApp.api.baseUrl}/dashboard`;
           break;
 
         case 403:

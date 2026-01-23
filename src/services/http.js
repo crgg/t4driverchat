@@ -6,7 +6,7 @@
 import axios from 'axios';
 import configApp from '@/config';
 import storage from '@/utils/storage';
-import router from '@/router';
+// import router from '@/router';
 
 // Create axios instance
 const httpClient = axios.create({
@@ -49,7 +49,7 @@ httpClient.interceptors.response.use(
           // Unauthorized - clear storage and redirect to login
           storage.remove(configApp.storage.token);
           storage.remove(configApp.storage.user);
-          router.push(configApp.routes.login);
+          window.location.href = `${configApp.api.baseUrl}/dashboard`;
           break;
 
         case 403:
