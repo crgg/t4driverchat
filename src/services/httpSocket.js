@@ -47,12 +47,11 @@ httpSocket.interceptors.response.use(
 
       switch (status) {
         case 401:
-          // Unauthorized - clear storage and redirect to login
+          // Unauthorized - clear storage and redirect to external dashboard
           storage.remove(configApp.storage.token);
           storage.remove(configApp.storage.user);
-          // router.push(configApp.routes.login);
           window.location.href = `${configApp.api.baseUrl}/dashboard`;
-          break;
+          return; // Exit immediately, don't reject the promise
 
         case 403:
           // Forbidden
