@@ -64,9 +64,8 @@
           class="flex items-center gap-2 gap-y-0 md:gap-4 text-xs text-secondary-500 flex-wrap"
         >
           <span v-if="deviceInfo.phonefrom" class="inline-flex items-center gap-1">
-            <span class="text-secondary-500">SO:</span>
             <img
-              :src="deviceInfo.phonefrom === 'android' ? DeviceIconAndroid : DeviceIconApple"
+              :src="deviceInfo.phonefrom === 'ANDROID' ? DeviceIconAndroid : DeviceIconApple"
               class="h-4 w-4"
               alt="Device Icon"
             />
