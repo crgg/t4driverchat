@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-// import { ref, reactive, onMounted } from 'vue';
+import { onMounted, onBeforeUnmount } from 'vue';
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue';
 import config from '@/config';
 // import { useRouter, useRoute } from 'vue-router';
@@ -128,49 +128,17 @@ import config from '@/config';
 // const showPassword = ref(false);
 // const loading = ref(false);
 
-// const handleSubmit = async () => {
-//   errors.email = '';
-//   errors.password = '';
-//   errors.general = '';
+let redirectTimeout = null;
 
-//   if (!form.email) {
-//     errors.email = 'Email is required';
-//     return;
-//   }
+onMounted(() => {
+  redirectTimeout = setTimeout(() => {
+    window.location.href = `${config.api.baseUrl}/dashboard`;
+  }, 3000);
+});
 
-//   if (!form.password) {
-//     errors.password = 'Password is required';
-//     return;
-//   }
-
-//   loading.value = true;
-
-//   try {
-//     const result = await authStore.login({
-//       email: form.email,
-//       password: form.password,
-//     });
-
-//     if (result.success) {
-//       const redirect = route.query.redirect || '/chat';
-//       router.push(redirect);
-//     } else {
-//       errors.general = result.error || 'Invalid credentials';
-//     }
-//   } catch (error) {
-//     errors.general = 'An error occurred. Please try again.';
-//   } finally {
-//     loading.value = false;
-//   }
-// };
-
-// onMounted(() => {
-//   // Animate form on mount
-//   gsap.from('.card', {
-//     duration: 0.6,
-//     y: 50,
-//     opacity: 0,
-//     ease: 'power3.out',
-//   });
-// });
+onBeforeUnmount(() => {
+  if (redirectTimeout) {
+    clearTimeout(redirectTimeout);
+  }
+});
 </script>

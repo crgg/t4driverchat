@@ -57,7 +57,7 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
-
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import { useContactsStore } from '@/stores/contacts';
@@ -68,8 +68,10 @@ import ChatHeader from '@/components/chat/ChatHeader.vue';
 import ContactList from '@/components/chat/ContactList.vue';
 import ChatWindow from '@/components/chat/ChatWindow.vue';
 import { useSocket } from '@/composables';
+import { chatApi } from '@/services/api';
 import config from '@/config';
 
+const router = useRouter();
 const authStore = useAuthStore();
 const chatStore = useChatStore();
 const contactsStore = useContactsStore();
@@ -87,12 +89,25 @@ const handleContactSelected = () => {
 };
 
 const handleCloseChat = () => {
-  // Close the current chat (for mobile back button)
   chatStore.leaveCurrentRoom();
 };
 
-onMounted(() => {
-  initializeChat();
+onMounted(async () => {
+  try {
+    const response = await chatApi.checkSession();
+
+    if (!response.data || !response.data.authenticated) {
+      console.warn('Session validation failed: Not authenticated');
+      window.location.href = `${config.api.baseUrl}/dashboard`;
+      return;
+    }
+
+    router.push({ path: '/chat', replace: true });
+    initializeChat();
+  } catch (error) {
+    console.error('Session validation error:', error);
+    window.location.href = `${config.api.baseUrl}/dashboard`;
+  }
 });
 
 onBeforeUnmount(() => {

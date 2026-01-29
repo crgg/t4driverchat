@@ -1,5 +1,10 @@
 <template>
-  <div class="tooltip-wrapper" @mouseenter="show = true" @mouseleave="show = false">
+  <div
+    ref="wrapperRef"
+    class="tooltip-wrapper"
+    @mouseenter="show = true"
+    @mouseleave="show = false"
+  >
     <!-- Trigger content (slot) -->
     <slot></slot>
 
@@ -46,6 +51,7 @@ const props = defineProps({
 });
 
 const show = ref(false);
+const wrapperRef = ref(null);
 const tooltipRef = ref(null);
 const tooltipStyle = ref({});
 
@@ -54,12 +60,11 @@ const updatePosition = async () => {
 
   await nextTick();
 
-  const wrapper = tooltipRef.value?.parentElement?.parentElement?.querySelector('.tooltip-wrapper');
-  if (!wrapper || !tooltipRef.value) return;
+  if (!wrapperRef.value || !tooltipRef.value) return;
 
-  const rect = wrapper.getBoundingClientRect();
+  const rect = wrapperRef.value.getBoundingClientRect();
   const tooltipRect = tooltipRef.value.getBoundingClientRect();
-  const gap = 8; // Distance from trigger
+  const gap = 8;
 
   let top = 0;
   let left = 0;
@@ -83,7 +88,6 @@ const updatePosition = async () => {
       break;
   }
 
-  // Keep tooltip within viewport
   const padding = 8;
   if (left < padding) left = padding;
   if (left + tooltipRect.width > window.innerWidth - padding) {
@@ -108,6 +112,16 @@ watch(show, async (newVal) => {
     updatePosition();
   }
 });
+
+watch(
+  () => props.text,
+  async () => {
+    if (show.value) {
+      await nextTick();
+      updatePosition();
+    }
+  }
+);
 </script>
 
 <style scoped>

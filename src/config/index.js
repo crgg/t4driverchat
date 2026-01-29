@@ -29,7 +29,7 @@ export const config = {
   app: {
     name: import.meta.env.VITE_APP_NAME || 'Chat Microservice',
     acronym: import.meta.env.VITE_APP_ACRONYM || 'CHAT',
-    version: '1.0.2',
+    version: '1.0.3',
   },
 
   // Storage Keys

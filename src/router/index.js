@@ -97,10 +97,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     if (!authStore.isLoggedIn) {
       // Not authenticated, redirect to login
-      next({
-        name: 'Login',
-        query: { redirect: to.fullPath },
-      });
+      window.location.href = `${config.api.baseUrl}/dashboard`;
       return;
     }
 

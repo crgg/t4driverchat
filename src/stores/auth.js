@@ -42,6 +42,11 @@ export const useAuthStore = defineStore('auth', () => {
           user: storedUser,
         });
       }
+    } else {
+      console.log('Redirect to other web @initializeAuth');
+      // redirect to other web
+      // window.location.href = `${config.api.baseUrl}/dashboard`;
+      return;
     }
   };
 

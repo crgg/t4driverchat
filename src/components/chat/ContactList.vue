@@ -30,7 +30,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-cente relative gap-1">
+        <div class="flex items-center gap-1">
           <Tooltip
             :text="filterOnlyOnlineUsers ? 'Show online users first' : 'Show all users'"
             position="bottom"

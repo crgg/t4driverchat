@@ -63,6 +63,14 @@
           v-if="deviceInfo"
           class="flex items-center gap-2 gap-y-0 md:gap-4 text-xs text-secondary-500 flex-wrap"
         >
+          <span v-if="deviceInfo.phonefrom" class="inline-flex items-center gap-1">
+            <span class="text-secondary-500">SO:</span>
+            <img
+              :src="deviceInfo.phonefrom === 'android' ? DeviceIconAndroid : DeviceIconApple"
+              class="h-4 w-4"
+              alt="Device Icon"
+            />
+          </span>
           <span v-if="deviceInfo.allow_location">
             Allow: <strong>{{ deviceInfo.allow_location }}</strong>
           </span>
@@ -107,6 +115,8 @@ import {
 import { Battery100Icon, Battery50Icon, Battery0Icon } from '@heroicons/vue/24/solid';
 import moment from 'moment';
 
+import DeviceIconAndroid from '@/assets/images/devicon_android.png';
+import DeviceIconApple from '@/assets/images/devicon_apple.png';
 import Avatar from '@/components/common/Avatar.vue';
 import { useContactsStore } from '@/stores/contacts';
 import { truncateText } from '@/utils/helpers';
