@@ -131,17 +131,18 @@ const setupSocketListeners = () => {
   socketService.on('chat', (msg) => {
     if (msg.where === 'PHONE' || msg.wherefrom === 'PHONE') {
       // Emit read message if from phone
-      socketService.readMessage({
-        session_id: msg.session_id,
-        type: 1,
-        wherefrom: 'web',
-        user: authStore.user.username,
-        message_id: msg.id,
-        uuid: msg.UUID,
-        sessionId: msg.session_id,
-        username: authStore.user.username,
-      });
-
+      if (msg.user_send === chatStore.currentRoom?.user2_id) {
+        socketService.readMessage({
+          session_id: msg.session_id,
+          type: 1,
+          wherefrom: 'web',
+          user: authStore.user.username,
+          message_id: msg.id,
+          uuid: msg.UUID,
+          sessionId: msg.session_id,
+          username: authStore.user.username,
+        });
+      }
       // Add message if from current driver
       if (msg.user_send === chatStore.currentRoom?.user2_id) {
         chatStore.receiveMessage(msg);
